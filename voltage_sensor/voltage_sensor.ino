@@ -6,7 +6,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(measureAC(A0));
+  Serial.println(measureAC(A0)); //print voltage value
 }
 
 float measureAC(int pin)
