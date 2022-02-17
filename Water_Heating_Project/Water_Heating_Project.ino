@@ -3,11 +3,11 @@
 #include <SPI.h>
 #include <SD.h>
 #define chipSelect 8
-#define ONE_WIRE_BUS 2
-#define cin A2
+#define ONE_WIRE_BUS 9
+#define cin A3
 #define vin A5
-#define dumpInterval 20000
-#define boiler 9
+unsigned long dumpInterval = 5000;
+#define boiler 10
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 unsigned long lastTime = 0;
@@ -44,7 +44,7 @@ void setup() {
     while (1);
   }
   sensors.begin();
-  dataString = "Temperature (*C), Power (W), Time Stamp";
+  dataString = "Temperature (*C),Voltage (V),Current (I),Power (W),Time Stamp";
   File dataFile = SD.open("datalog.csv", FILE_WRITE);
   if (dataFile) {
     dataFile.println(dataString);
@@ -59,11 +59,15 @@ void loop() {
   if (millis() - lastTime >= dumpInterval)
   {
     dataString = "";
-    dataString += String(measureTemperature(), 1) + "; ";
-    dataString += String(measurePower(), 0) + "; ";
-    epochToLocal(millis());
+    float v = measureVoltageAC(vin);
+    double i = measureCurrentAC();
+    float p = v * i;
+    dataString += String(measureTemperature(), 1) + ",";
+    dataString += String(v) + ",";
+    dataString += String(i) + ",";
+    dataString += String(p) + ",";
+    epochToLocal(millis() / 1000);
     dataString += localTime;
-    lastTime = millis();
     File dataFile = SD.open("datalog.csv", FILE_WRITE);
     if (dataFile) {
       dataFile.println(dataString);
@@ -72,6 +76,7 @@ void loop() {
     else {
       ;
     }
+    lastTime = millis();
   }
   if(measureTemperature() >= 80.0)
   {
@@ -80,13 +85,7 @@ void loop() {
   else {
     digitalWrite(boiler, 1);
   }
-}
-float measurePower()
-{
-  float v = measureVoltageAC(vin);
-  double i = measureCurrentAC();
-  double p = v * i;
-  return p;
+  dataString = "";
 }
 float measureVoltageAC(int pin)
 {
@@ -149,4 +148,5 @@ float getVPP()
 
   // Subtract min from max
   result = ((maxValue - minValue) * 5.0) / 1024.0;
+  return result;
 }
