@@ -2,17 +2,19 @@
 #include <DallasTemperature.h>
 #include <SPI.h>
 #include <SD.h>
-#define chipSelect 8
-#define ONE_WIRE_BUS 9
-#define cin A3
-#define vin A5
-unsigned long dumpInterval = 68000;
-#define boiler 10
+#define chipSelect 10
+#define ONE_WIRE_BUS 2
+#define cin A4
+#define vin A1
+#define luxin A5
+#define flowIn A3
+#define boiler 9
+unsigned long dumpInterval = 66000;
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 unsigned long lastTime = 0;
 String dataString, localTime;
-float temp1, temp2;
+float temp1, temp2, temp3, temp4;
 void epochToLocal(unsigned long unixEpoch)
 {
   long second = unixEpoch % 60;
@@ -25,37 +27,83 @@ void epochToLocal(unsigned long unixEpoch)
   localTime += String(minute) + ':';
   localTime += String(second);
 }
+float measureIrradians()
+{
+  float voltage = analogRead(luxin);
+  voltage = (voltage * 5.0) / 1023.0; //volts
+  float illuminance = 2500 / voltage;
+  illuminance -= 500;
+  illuminance /= 10; //lux
+  float irradiance = illuminance / 120.0;
+  return irradiance;
+}
 
+float measureFlowRate()
+{
+  unsigned long h, l, t;
+  unsigned long tprev = millis();
+  float f, freq = 0, count = 0, flow = 0;
+  while(millis() - tprev < 2000)
+  {
+    h = pulseIn(flowIn, 1);
+    l = pulseIn(flowIn, 0);
+    t = h + l;
+    f = 1000000UL / t;
+    freq += f;
+    count++;
+  }
+  freq /= count;
+  flow = freq / 7.5; // L/Min
+  if(flow > 30 || flow < 0)
+  {
+    return 0;
+  }
+  else 
+  {
+    return flow;
+  }
+}
 void measureTemperatures()
 {
   sensors.requestTemperatures();
   float temp1C = sensors.getTempCByIndex(0);
   float temp2C = sensors.getTempCByIndex(1);
-  if (temp1C != DEVICE_DISCONNECTED_C || temp2C != DEVICE_DISCONNECTED_C)
+  float temp3C = sensors.getTempCByIndex(2);
+  float temp4C = sensors.getTempCByIndex(3);
+  if (temp1C != DEVICE_DISCONNECTED_C || temp2C != DEVICE_DISCONNECTED_C || temp3C != DEVICE_DISCONNECTED_C || temp4C != DEVICE_DISCONNECTED_C)
   {
     temp1 = temp1C;
     temp2 = temp2C;
+    temp3 = temp3C;
+    temp4 = temp4C;
   }
   else
   {
     temp1 = 0;
     temp2 = 0;
+    temp3 = 0;
+    temp4 = 0;
   }
 }
 void setup() {
+  Serial.begin(9600);
   pinMode(boiler, 1);
-  if (!SD.begin(chipSelect)) {
-    while (1);
+  pinMode(flowIn, 0);
+  while (!SD.begin(chipSelect)) {
+    Serial.println("failed to mount sd. ");
+    delay(3000);
   }
+  Serial.println("SD card mounted successfully. ");
   sensors.begin();
-  dataString = "Temp1 (*C),Temp2 (*C),Voltage (V),Current (I),Power (W),Time Stamp";
-  File dataFile = SD.open("datalog2.csv", FILE_WRITE);
+  dataString = "Temp1 (*C),Temp2 (*C),Temp3 (*C),Temp4 (*C),Voltage (V),Current (I),Power (W),Irradiance (W/M^2),Flow Rate (L/Min),Time Stamp (DD:HH:MM:SS)";
+  Serial.println(dataString);
+  File dataFile = SD.open("datalog.csv", FILE_WRITE);
   if (dataFile) {
     dataFile.println(dataString);
     dataFile.close();
   }
   else {
-    ;
+    Serial.println("Bad SD card. ");
   }
 }
 
@@ -67,25 +115,32 @@ void loop() {
     float i = measureCurrentAC();
     float p = v * i;
     measureTemperatures();
+    float irrad = measureIrradians();
+    float rate = measureFlowRate();
     dataString += String(temp1, 1) + ",";
     dataString += String(temp2, 1) + ",";
+    dataString += String(temp3, 1) + ",";
+    dataString += String(temp4, 1) + ",";
     dataString += String(v, 0) + ",";
     dataString += String(i, 0) + ",";
     dataString += String(p, 0) + ",";
+    dataString += String(irrad) + ",";
+    dataString += String(rate) + ",";
     epochToLocal(millis() / 1000);
     dataString += localTime;
-    File dataFile = SD.open("datalog2.csv", FILE_WRITE);
+    Serial.println(dataString);
+    File dataFile = SD.open("datalog.csv", FILE_WRITE);
     if (dataFile) {
       dataFile.println(dataString);
       dataFile.close();
     }
     else {
-      ;
+      Serial.println("Bad SD card. ");
     }
     lastTime = millis();
   }
   float avgTemp = (temp1 + temp2) / 2.0;
-  if(avgTemp >= 80.0)
+  if(avgTemp >= 70.0)
   {
     digitalWrite(boiler, 0);
   }
