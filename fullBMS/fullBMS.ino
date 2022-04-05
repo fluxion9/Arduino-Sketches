@@ -1,14 +1,13 @@
-#include <Wire.h>
-
-
+//#include <Wire.h>
 //pin definations
+#include <SoftwareSerial.h>
 #define iSense A3
-#define chargePin 9
-#define output 5
-#define cell1 A2
-#define cell2 A3
-#define cell3 A4
-#define lilLed 10
+#define chargePin 8
+#define output 3
+#define cell1 A0
+#define cell2 A1
+#define cell3 A2
+#define lilLed 9
 
 
 //state definations
@@ -16,13 +15,13 @@
 #define notFull 4
 #define charging 6
 
-
+SoftwareSerial serial(A5, A4);
 
 String b_data = "";
 
-const float battCapacity = 1500, fullChargeVoltage = 12.4, lowChargeVoltage = 10.0;
+float battCapacity = 1500, fullChargeVoltage = 12.4, lowChargeVoltage = 10.0;
 
-double charge = 0.0, current = 0.0;
+float charge = 0.0, current = 0.0;
 
 float batteryVoltage, batteryPercentage;
 
@@ -38,10 +37,11 @@ byte state;
 struct BMS     //creating a BMS class
 {
 
-  
+
   void initializeBMS() //method for initializing the BMS
   {
     pinMode(output, 1);
+    serial.begin(9600);
     pinMode(lilLed, 1);
     for (byte i = 0; i < 3; ++i)
     {
@@ -53,9 +53,9 @@ struct BMS     //creating a BMS class
       while (1)
       {
         digitalWrite(lilLed, 1);
-        delay(200);
+        delay(100);
         digitalWrite(lilLed, 0);
-        delay(200);
+        delay(100);
       }
     }
     else if (temp <= lowChargeVoltage)
@@ -69,9 +69,13 @@ struct BMS     //creating a BMS class
   }
 
 
-  double measureCurrent(byte pin)
+  float measureCurrent(byte pin)
   {
-
+    float voltage = analogRead(pin);
+    voltage = (voltage * 5.0) / 1023.0;
+    voltage -= 2.5;
+    float current = voltage / 0.0133;
+    return current * 1000;
   }
 
 
@@ -79,6 +83,9 @@ struct BMS     //creating a BMS class
   {
     if (batteryVoltage < lowChargeVoltage)
     {
+      digitalWrite(output, 0);
+    }
+    else {
       digitalWrite(output, 0);
     }
   }
@@ -170,21 +177,24 @@ struct BMS     //creating a BMS class
   void seriallizeData(void)
   {
     b_data = "[";
-      b_data += batteryVoltage;
-        b_data += ",";
-          b_data += batteryPercentage;
-            b_data += ",";
-              b_data += charge;     
-                b_data += ",";          //My Serializing Art ;)
-              b_data += cell_voltage[0];
-            b_data += ",";
-          b_data += cell_voltage[1];
-        b_data += ",";
-      b_data += cell_voltage[2];
+    b_data += batteryVoltage;
+    b_data += ",";
+    b_data += batteryPercentage;
+    b_data += ",";
+    b_data += charge;
+    b_data += ",";          //My Serializing Art ;)
+    b_data += current;
+    b_data += ",";
+    b_data += cell_voltage[0];
+    b_data += ",";
+    b_data += cell_voltage[1];
+    b_data += ",";
+    b_data += cell_voltage[2];
     b_data += "]";
+    serial.println(b_data);
   }
 
-  
+
   void computePercentage(void)
   {
     batteryPercentage = (charge / battCapacity) * 100;
@@ -194,35 +204,35 @@ struct BMS     //creating a BMS class
     }
   }
 
-  
+
   void doRoutine(void)
   {
-      checkCondition();
-        countQ();
-          computePercentage();
-        Charge();
-      seriallizeData();
+    checkCondition();
+    countQ();
+    computePercentage();
+    Charge();
+    seriallizeData();
   }
 
 };
 BMS bms; //creating a BMS object
 
 
-void requestEvent() {
-  Wire.print(b_data);
-}
+//void requestEvent() {
+//  Wire.print(b_data);
+//}
 
 
-void receiveEvent(int howMany) {
-
-}
+//void receiveEvent(int howMany) {
+//
+//}
 
 
 void setup() {
-  Wire.begin(101);
-  Wire.onRequest(requestEvent);
-  Wire.onReceive(receiveEvent);
   bms.initializeBMS();              //initializing the BMS
+  //  Wire.begin(101);
+  //  Wire.onRequest(requestEvent);
+  //  Wire.onReceive(receiveEvent);
 }
 
 
