@@ -1,5 +1,5 @@
 //#include <Wire.h>
-//pin definations
+//pin definitions
 #include <SoftwareSerial.h>
 #define iSense A3
 #define chargePin 8
@@ -10,7 +10,7 @@
 #define lilLed 9
 
 
-//state definations
+//state definitions
 #define fullyCharged 2
 #define notFull 4
 #define charging 6
@@ -29,7 +29,7 @@ float cell_voltage[3] = {};
 
 byte cells[3] = {cell1, cell2, cell3};
 
-unsigned long currentStamp = 0, lastMillis = 0, lastStamp = 0, cTime = 60000, wTime = 3000;
+unsigned long currentStamp = 0, lastMillis = 0, lastStamp = 0, cTime = 30000, wTime = 3000, diff;
 
 byte state;
 
@@ -75,7 +75,7 @@ struct BMS     //creating a BMS class
     voltage = (voltage * 5.0) / 1023.0;
     voltage -= 2.5;
     float current = voltage / 0.0133;
-    return current * 1000;
+    return current * 1000; //convert to milliamperes
   }
 
 
@@ -84,6 +84,7 @@ struct BMS     //creating a BMS class
     if (batteryVoltage < lowChargeVoltage)
     {
       digitalWrite(output, 0);
+      batteryPercentage = 0;
     }
     else {
       digitalWrite(output, 1);
@@ -112,8 +113,9 @@ struct BMS     //creating a BMS class
     if (state == notFull && (currentStamp - lastStamp >= wTime))
     {
       readCellVoltages();
-      if (batteryPercentage >= 100 && batteryVoltage >= fullChargeVoltage)
+      if (batteryVoltage >= fullChargeVoltage)
       {
+        batteryPercentage = 100;
         state = fullyCharged;
       }
       else {
@@ -126,8 +128,9 @@ struct BMS     //creating a BMS class
     {
       digitalWrite(chargePin, 0);
       readCellVoltages();
-      if (batteryPercentage >= 100 && batteryVoltage >= fullChargeVoltage)
+      if (batteryVoltage >= fullChargeVoltage)
       {
+        batteryPercentage = 100;
         state = fullyCharged;
       }
       else {
@@ -136,11 +139,11 @@ struct BMS     //creating a BMS class
       }
       lastStamp = millis();
     }
-    else if (state ==  fullyCharged)
+    else if (state == fullyCharged)
     {
       digitalWrite(chargePin, 0);
       readCellVoltages();
-      if (batteryPercentage < 100 || batteryVoltage < fullChargeVoltage)
+      if (batteryPercentage < 100 && batteryVoltage < fullChargeVoltage)
       {
         state = notFull;
       }
@@ -154,12 +157,13 @@ struct BMS     //creating a BMS class
 
   void countQ(void)
   {
-    if (millis() - lastMillis >= 1000)
+    diff = millis() - lastMillis;
+    if ( diff >= 1000)
     {
       current = measureCurrent(iSense);
       if (current > 0)
       {
-        charge = charge - (current * 0.0002777d);
+        charge = charge - (current * (diff / 3600000.0));
         if (charge < 0)
         {
           charge = 0;
@@ -167,7 +171,7 @@ struct BMS     //creating a BMS class
       }
       else if (current < 0)
       {
-        charge = charge + (-1.0 * current * 0.0002777d);
+        charge = charge + (-1.0 * current * (diff / 3600000.0));
       }
       lastMillis = millis();
     }
