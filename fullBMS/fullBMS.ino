@@ -86,14 +86,13 @@ struct BMS     //creating a BMS class
       digitalWrite(output, 0);
     }
     else {
-      digitalWrite(output, 0);
+      digitalWrite(output, 1);
     }
   }
 
 
   void readCellVoltages(void) //method for reading cell voltages
   {
-    batteryVoltage = 0;
     for (byte i = 0; i < 3; ++i)
     {
       float voltage = analogRead(cells[i]);
