@@ -5,10 +5,10 @@
 #include <Servo.h>
 Servo servo;
 
-#define redLed A4
-#define greenLed A5
-#define buzzer A3
-#define servoPin 11
+#define redLed 5
+#define greenLed 6
+#define buzzer 7
+#define servoPin 3
 
 
 bool programMode = false;
@@ -126,7 +126,7 @@ void loop() {
       if (findID(readCard)) {
         //granted
         granted();
-        openDoor(10);
+        openDoor(5);
       }
       else {
         //denied

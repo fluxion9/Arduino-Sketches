@@ -1,64 +1,27 @@
-#include <LiquidCrystal.h>
+#define trig0 6
+#define echo0 5
+#define trig1 10
+#define echo1 11
 
-const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+#define rst 10
 
-#define trig0 10
-#define echo0 11
-#define trig1 13
-#define echo1 12
-
-#define rst 4
-
-#define buzz 8
-#define led 7
 
 struct attC
 {
   bool state[2] = {0, 0};
   float threshold = 100.0; //cm
-  float waitTime = 2; //second(s)
+  float waitTime = 5.0; //second(s)
   unsigned long millisNow, dMillis = 0;
   int count;
 
   void Init( void )
   {
-    pinMode( rst, 0 );
-    pinMode( buzz, 1);
-    pinMode( led, 1);
-    digitalWrite( buzz, 1 );
-
-    for (int y = 0; y < 3; ++y)
-    {
-      digitalWrite( led, 1 );
-      delay( 300 );
-      digitalWrite( led, 0 );
-      delay( 300 );
-    }
-    
-    digitalWrite(buzz, 0);
+    Serial.begin(115200);
     count = 0;
-    lcd.begin( 16, 2 );
-    lcd.clear();
-    lcd.setCursor( 3, 1 );
-    lcd.print( "ATTENDANCE" );
-    delay(500);
+    Serial.println("Device Initialized..");
 
-    digitalWrite( led, 1 );
   }
-  void updateDisplay( int rate )
-  {
-    if ( millis() - dMillis >= rate )
-    {
-      lcd.clear();
-      lcd.setCursor( 3, 0 );
-      lcd.print( "ATTENDANCE" );
-      lcd.setCursor( 0, 1 );
-      lcd.print( "count = " + String( count ) );
-      dMillis = millis();
 
-    }
-  }
   bool ping( byte trig, byte echo )
   {
     pinMode( trig, 1 );
@@ -141,24 +104,13 @@ struct attC
 
   void Run( void )
   {
-    if ( digitalRead( rst ) )
-    {
-      count = 0;
-    }
     switch ( checkMo() )
     {
       case 1:
-        beep();
-        count++;
+        Serial.println("MOTION: RIGHT");
         break;
       case 2:
-        beep();
-        count--;
-        if ( count < 0 )
-        {
-          count = 0;
-        }
-
+        Serial.println("MOTION: LEFT");
       default:
         break;
     }
@@ -167,14 +119,6 @@ struct attC
   void runLoop()
   {
     Run();
-    updateDisplay( 1000 );
-  }
-
-  void beep( void )
-  {
-    digitalWrite(buzz, 1);
-    delay(300);
-    digitalWrite(buzz, 0);
   }
 
 } counter;
