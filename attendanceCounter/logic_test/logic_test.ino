@@ -83,8 +83,8 @@ struct attC
         {
           return 1;
         }
-        return 0;
       }
+      return 0;
     }
     else if ( eventId == 0 )
     {
@@ -95,8 +95,8 @@ struct attC
         {
           return 1;
         }
-        return 0;
       }
+      return 0;
     }
 
 

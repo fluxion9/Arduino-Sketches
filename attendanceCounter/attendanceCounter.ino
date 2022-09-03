@@ -26,7 +26,7 @@ struct attC
     pinMode( rst, 0 );
     pinMode( buzz, 1);
     pinMode( led, 1);
-    digitalWrite( buzz, 1 );
+    tone( buzz, 2000 );
 
     for (int y = 0; y < 3; ++y)
     {
@@ -36,7 +36,7 @@ struct attC
       delay( 300 );
     }
     
-    digitalWrite(buzz, 0);
+    noTone( buzz );
     count = 0;
     lcd.begin( 16, 2 );
     lcd.clear();
@@ -120,8 +120,8 @@ struct attC
         {
           return 1;
         }
-        return 0;
       }
+      return 0;
     }
     else if ( eventId == 0 )
     {
@@ -132,8 +132,8 @@ struct attC
         {
           return 1;
         }
-        return 0;
       }
+      return 0;
     }
 
 
@@ -143,6 +143,12 @@ struct attC
   {
     if ( digitalRead( rst ) )
     {
+      for ( byte i = 0; i < 2; i++ )
+      {
+        tone(buzz, 2000);
+        delay(250);
+        noTone(buzz);
+      }
       count = 0;
     }
     switch ( checkMo() )
@@ -172,9 +178,9 @@ struct attC
 
   void beep( void )
   {
-    digitalWrite(buzz, 1);
-    delay(300);
-    digitalWrite(buzz, 0);
+    tone(buzz, 2000);
+    delay(500);
+    noTone(buzz);
   }
 
 } counter;
