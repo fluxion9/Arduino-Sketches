@@ -5,10 +5,10 @@
 #include <Servo.h>
 Servo servo;
 
-#define redLed 5
-#define greenLed 6
-#define buzzer 7
-#define servoPin 3
+#define redLed 6
+#define greenLed 7
+#define buzzer 3
+#define servoPin 9
 
 
 bool programMode = false;
@@ -21,7 +21,7 @@ byte storedCard[4];   // Stores an ID read from EEPROM
 byte readCard[4];   // Stores scanned ID read from RFID Module
 byte masterCard[4];   // Stores master card's ID read from EEPROM
 #define SS_PIN 10
-#define RST_PIN 9
+#define RST_PIN A2
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
