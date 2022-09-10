@@ -352,12 +352,12 @@ struct cReader
   }
   }
   
-};
+}cR;
 
 void setup() {
-
+  cR.Init();
 }
 
 void loop() {
-  
+  cR.Run();
 }
