@@ -1,15 +1,23 @@
 #include <rdm6300.h>
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
-#include <Servo.h>
-Servo servo;
+//#include <Servo.h>
+#include <Stepper.h>
+
+
+
+//Servo servo;
 Rdm6300 rdm6300;
 
-#define redLed 6
-#define greenLed 7
-#define buzzer 13
-#define servoPin 9
+#define redLed A2
+#define greenLed A0
+#define buzzer 6
+//#define servoPin 9
 #define RDM6300_RX_PIN 8
+
+#define STEPS 100
+#define buzz_freq 2000
+Stepper stepper(STEPS, 9, 10, 11, 12);
 
 bool programMode = false;
 
@@ -29,7 +37,7 @@ struct cReader
     pinMode(redLed, OUTPUT);
     pinMode(greenLed, OUTPUT);
     pinMode(buzzer, OUTPUT);
-    digitalWrite(buzzer, 1);
+    tone(buzzer, buzz_freq);
 
     for (int y = 0; y < 3; ++y)
     {
@@ -38,9 +46,10 @@ struct cReader
       digitalWrite(greenLed, 0);
       delay(300);
     }
-    digitalWrite(buzzer, 0);
+    noTone( buzzer );
 
-    servo.attach(servoPin);
+    //servo.attach(servoPin);
+    stepper.setSpeed(60);
     rdm6300.begin(RDM6300_RX_PIN);
     Serial.begin(9600);
     if (EEPROM.read(1) != 143) {
@@ -70,9 +79,10 @@ struct cReader
   void granted() {
     for (int x = 0; x < 3; ++x)
     {
-      digitalWrite( buzzer, 1 );
+      //digitalWrite( buzzer, 1 )
+      tone(buzzer, buzz_freq);
       delay( 50 );
-      digitalWrite( buzzer, 0 );
+      noTone( buzzer );
       delay( 50 );
     }
     digitalWrite( redLed, 0 );
@@ -82,9 +92,9 @@ struct cReader
   void denied() {
     for (int x = 0; x < 2; ++x)
     {
-      digitalWrite( buzzer, 1 );
+      tone(buzzer, buzz_freq);
       delay( 200 );
-      digitalWrite( buzzer, 0 );
+      noTone( buzzer );
       delay( 100 );
     }
     digitalWrite( greenLed, 0 );  // Make sure green LED is off
@@ -211,9 +221,9 @@ struct cReader
     digitalWrite( greenLed, 1 );
     for (int x = 0; x < 3; ++x)
     {
-      digitalWrite(buzzer, 1);
+      tone(buzzer, buzz_freq);
       delay(50);
-      digitalWrite(buzzer, 0);
+      noTone(buzzer);
       delay(50);
     }
     delay(1000);
@@ -225,9 +235,9 @@ struct cReader
     digitalWrite( greenLed, 0 );
     for ( int x = 0; x < 2; ++x )
     {
-      digitalWrite( buzzer, 1 );
+      tone(buzzer, buzz_freq);
       delay( 200 );
-      digitalWrite( buzzer, 0 );
+      noTone(buzzer);
       delay( 100 );
     }
     for ( int x = 0; x < 2; ++x )
@@ -243,9 +253,9 @@ struct cReader
     digitalWrite( greenLed, 1 );
     for ( int x = 0; x < 3; ++x )
     {
-      digitalWrite( buzzer, 1 );
+      tone(buzzer, buzz_freq);
       delay( 50 );
-      digitalWrite( buzzer, 0 );
+      noTone(buzzer);
       delay( 50 );
     }
     delay( 1000 );
@@ -258,9 +268,11 @@ struct cReader
 
   void openDoor( float Delay )
   {
-    servo.write(openPos);
+    //servo.write(openPos);
+    stepper.step(50);
     delay( int( Delay * 1000 ) );
-    servo.write( closePos );
+    //servo.write( closePos );
+    stepper.step(-50);
   }
 
 
