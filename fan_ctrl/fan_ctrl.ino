@@ -3,17 +3,18 @@
 #include "DHT.h"
 
 #define DHTTYPE DHT11
-#define DHTPIN 2
-#define buzzer 3
-#define relay 4
-#define doplr_sense 5
+#define DHTPIN 4
+#define buzzer A1
+#define relay 5
+#define doplr_sense A5
 #define btn_1 6
 #define btn_2 7
 #define btn_3 8
 #define btn_4 9
+#define backlight 10
 #define off 0
 #define on 1
-const int rs = A0, en = A1, d4 = A5, d5 = A4, d6 = A3, d7 = A2;
+const int rs = A4, en = A2, d4 = A0, d5 = 13, d6 = 12, d7 = 11;
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 DHT dht(DHTPIN, DHTTYPE);
@@ -23,7 +24,7 @@ struct FCtrl
   float temperature, upper, lower, avg;
   int16_t count, posense, scan_rate, dev_mode;
   bool presence, fan_state;
-  uint32_t prev_sense, prev_scan, last_millis, refresh_rate;
+  uint32_t prev_sense, prev_scan, last_millis, refresh_rate, last_count, tick_rate, count_period, max_period;
   void init(void)
   {
 
@@ -34,6 +35,7 @@ struct FCtrl
     pinMode(btn_2, 2);
     pinMode(btn_3, 2);
     pinMode(btn_4, 2);
+    pinMode(backlight, 1);
 
     lcd.begin(16, 2);
     dht.begin();
@@ -42,10 +44,11 @@ struct FCtrl
     digitalWrite(buzzer, 1);
     delay(300);
     digitalWrite(buzzer, 0);
+    digitalWrite(backlight, 1);
 
     presence = false;
     prev_sense = 0;
-    posense = 60.0;
+    posense = 10000;
     prev_scan = 0;
     last_millis = 0;
     refresh_rate = 500;
@@ -56,6 +59,10 @@ struct FCtrl
     upper = 30.0;
     lower = 25.0;
     dev_mode = 0;
+    last_count = 0;
+    tick_rate = 1000;
+    count_period = 0;
+    max_period = 300;
 
     stop_fan();
     
@@ -70,6 +77,28 @@ struct FCtrl
       avg += float(motion);
       count++;
       prev_scan = millis();
+    }
+  }
+  void countdown(void)
+  {
+    if (millis() - last_count >= tick_rate)
+    {
+      if(digitalRead(doplr_sense))
+      {
+        count_period = max_period;
+      }
+      else {
+        count_period--;
+        count_period = constrain(count_period, 0, max_period);
+      }
+      if(count_period > 0)
+      {
+        presence = true;
+      }
+      else {
+        presence = false;
+      }
+      last_count = millis();
     }
   }
   void start_fan(void)
@@ -212,9 +241,10 @@ struct FCtrl
   {
     if (dev_mode == 0)
     {
-      scan();
+      //scan();
       measure_temp();
-      check_presence();
+      //check_presence();
+      countdown();
       control_fan();
       display(0);
       byte val = read_keys();
@@ -232,9 +262,10 @@ struct FCtrl
     }
     else if (dev_mode == 1)
     {
-      scan();
+      //scan();
       measure_temp();
-      check_presence();
+      //check_presence();
+      countdown();
       control_fan();
       display(1);
       byte val = read_keys();
@@ -261,9 +292,10 @@ struct FCtrl
     }
     else if (dev_mode == 2)
     {
-      scan();
+      //scan();
       measure_temp();
-      check_presence();
+      //check_presence();
+      countdown();
       control_fan();
       display(2);
       byte val = read_keys();
