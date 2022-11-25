@@ -1,29 +1,34 @@
 #include <SoftwareSerial.h>
-SoftwareSerial lora(5, 6);
-
-#define M0 3
-#define M1 4
+SoftwareSerial sim(11, 12);
 
 void setup() {
-  lora.begin(9600);
+  sim.begin(9600);
   Serial.begin(9600);
-  pinMode(M0, 1);
-  pinMode(M1, 1);
-  digitalWrite(M0, 0);
-  digitalWrite(M1, 0);
-  
 }
 
+String data = "";
+
 void loop() {
-  if(Serial.available() > 0)
+  if(Serial.available())
   {
-    String input = Serial.readString();
-    lora.println(input);
+    char c = Serial.read();
+    if(c == 's')
+    {
+      sendSMS("+2347089182147");
+    }
   }
-  if(lora.available() > 0)
-  {
-    String input = lora.readString();
-    Serial.println(input);
-  }
-  delay(20);
 }
+
+void sendSMS(String phoneNumber)
+  {
+    sim.println("AT");
+    delay(1000);
+    sim.println("AT+CMGF=1");
+    delay(1000);
+    sim.println("AT+CMGS=\"" + phoneNumber + "\"");
+    delay(1000);
+    sim.print("Trash Can is full at Hannah Orakwelu's place, please come and empty it. Thank you.");
+    delay(1000);
+    sim.write(26);
+    delay(1000);
+  }
