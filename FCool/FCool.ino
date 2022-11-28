@@ -1,17 +1,22 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 32
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define fan 1
-#define temp_bus 2
-#define btn_1 3
-#define btn_2 4
+#define fan 9
+#define temp_bus 10
+#define btn_1 20
+#define btn_2 21
 #define btn_3 5
-#define buzzer 6
+#define buzzer 11
 
 #define off 0
 #define on 1
@@ -26,11 +31,11 @@ struct SpeedCool
 {
   bool fanState = off, dev_state = idle;
   float temperature, set_temperature = 20.0;
-  byte fanSpeed;
+  uint16_t fanSpeed;
+  uint32_t last_millis = 0, refresh_rate = 1000;
   enum button_states {plus = 1, start_stop, minus, normal_speed = 128};
   void init(void)
   {
-    pinMode(fan, 1);
     pinMode(buzzer, 1);
     pinMode(btn_1, 2);
     pinMode(btn_2, 2);
@@ -39,9 +44,23 @@ struct SpeedCool
     digitalWrite(buzzer, 1);
     delay(300);
     digitalWrite(buzzer, 0);
-
+    TCCR1B = TCCR1B & B11111000 | B00000011;
+    fanSpeed = 128;
     sensors.begin();
+    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+      for (;;);
+    }
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    welcome();
+  }
 
+  void welcome(void)
+  {
+    display.display();
+    delay(2000);
+    display.clearDisplay();
+    display.display();
   }
 
   void measureTemperature(void)
@@ -88,13 +107,65 @@ struct SpeedCool
     }
   }
 
-  void greet()
+  void Display(byte slide)
   {
-
-  }
-  void display(byte mode)
-  {
-
+    if (millis() - last_millis >= refresh_rate)
+    {
+      if (slide == 1)
+      {
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("    *Speed Cool*    ");
+        display.println("Set Temp -> " + String(set_temperature) + " C");
+        display.println("Temp -> " + String(temperature) + " C");
+        display.println("Status -> Idle");
+        display.display();
+      }
+      else if (slide == 2)
+      {
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.println("    *Speed Cool*    ");
+        display.println("Set Temp -> " + String(set_temperature) + " C");
+        display.println("Temp -> " + String(temperature) + " C");
+        display.println("Status -> Cooling");
+        display.display();
+      }
+      last_millis = millis();
+    }
+    if (slide == 3)
+    {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("    *Speed Cool*    ");
+      display.println("Set Temp -> " + String(set_temperature) + " C");
+      display.println("Temp -> " + String(temperature) + " C");
+      display.println("Status -> Start Cool");
+      display.display();
+      delay(500);
+    }
+    if(slide == 4)
+    {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("    *Speed Cool*    ");
+      display.println("Set Temp -> " + String(set_temperature) + " C");
+      display.println("Temp -> " + String(temperature) + " C");
+      display.println("Status -> Stop Cool");
+      display.display();
+      delay(500);
+    }
+    if(slide == 5)
+    {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("    *Speed Cool*    ");
+      display.println("Set Temp -> " + String(set_temperature) + " C");
+      display.println("Temp -> " + String(temperature) + " C");
+      display.println("Speed -> " + String(int(fanSpeed / 51)));
+      display.display();
+      delay(500);
+    }
   }
 
   void run(void)
@@ -103,6 +174,7 @@ struct SpeedCool
     {
       stopFan();
       measureTemperature();
+      Display(1);
       byte val = read_keys();
       switch (val)
       {
@@ -119,19 +191,22 @@ struct SpeedCool
           break;
       }
     }
-    if(dev_state == busy)
+    if (dev_state == busy)
     {
       measureTemperature();
+      Display(2);
       byte val = read_keys();
       switch (val)
       {
         case plus:
           fanSpeed += 51;
-          constrain(fanSpeed, 0, 255);
+          fanSpeed = constrain(fanSpeed, 51, 255);
+          Display(5);
           break;
         case minus:
           fanSpeed -= 51;
-          constrain(fanSpeed, 0, 255);
+          fanSpeed = constrain(fanSpeed, 51, 255);
+          Display(5);
           break;
         case start_stop:
           dev_state = idle;
@@ -139,15 +214,17 @@ struct SpeedCool
         default:
           break;
       }
-      if(set_temperature < temperature && fanState == off)
+      if (set_temperature < temperature && fanState == off)
       {
         beep();
+        Display(3);
         fanSpeed = normal_speed;
         runFan(fanSpeed);
       }
-      else if(set_temperature >= temperature && fanState == on) 
+      else if (set_temperature >= temperature && fanState == on)
       {
         beep();
+        Display(4);
         stopFan();
         dev_state = idle;
       }
@@ -162,7 +239,9 @@ struct SpeedCool
 
 
 void setup() {
+  speedCool.init();
 }
 
 void loop() {
+  speedCool.run();
 }

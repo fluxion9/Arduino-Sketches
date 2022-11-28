@@ -160,9 +160,9 @@ struct Air_Cooler
       {
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Temp: " + String(temperature));
+        lcd.print("Temp: " + String(temperature) + "*C");
         lcd.setCursor(0, 1);
-        lcd.print("Humidity: " + String(humidity));
+        lcd.print("Humidity: " + String(humidity) + "%");
       }
       last_millis = millis();
     }
