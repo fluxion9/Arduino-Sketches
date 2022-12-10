@@ -38,17 +38,39 @@ void check_response()
   if(Serial.available())
   {
     char data = Serial.read();
-    switch(data)
+    if(data == 'A')
     {
-      case 'A':
-        send_command(0);
-        break;
-      case 'B':
-       send_command(2);
-       break;
-      default:
-        break;
+      send_command(0);
     }
+    else if(data == 'B')
+    {
+      send_command(2);
+    }
+    else if(data == 'C')
+    {
+      send_command(3);
+    }
+    else if(data == 'D')
+    {
+      send_command(4);
+    }
+//    switch(data)
+//    {
+//      case 'A':
+//        send_command(0);
+//        break;
+//      case 'B':
+//       send_command(2);
+//       break;
+//      case 'C':
+//       send_command(3);
+//       break;
+//      case 'D':
+//       send_command(4);
+//       break;
+//      default:
+//        break;
+//    }
   }
 }
 void select_mode(byte mode)
@@ -80,25 +102,79 @@ void select_mode(byte mode)
 
 void send_command(byte command)
 {
-  switch (command)
-  {
-    case 0:
+    if(command == 0)
+    {
       select_mode(3);
+      Serial.println("Restore Factory settings: ");
       delay(1000);
       uint8_t CMD[3] = {0xC9, 0xC9, 0xC9};
       lora.write(CMD, 3);
-      break;
-    case 1:
+    }
+    else if(command == 1)
+    {
       select_mode(0);
+      Serial.println("Message: ");
       delay(1000);
       uint8_t MSG[5] = {0x68, 0x65, 0x6C, 0x6C, 0x6F};
       lora.write(MSG, 5);
-      break;
-    case 2:
+    }
+    else if(command == 2)
+    {
       select_mode(3);
+      Serial.println("Handshake: ");
       delay(1000);
       uint8_t MSG2[3] = {0xE1, 0xE1, 0xE1};
       lora.write(MSG2, 3);
-      break;
-  }
+    }
+    else if(command == 3)
+    {
+      select_mode(3);
+      Serial.println("Current Config: ");
+      delay(1000);
+      uint8_t MSG3[3] = {0xC1, 0xC1, 0xC1};
+      lora.write(MSG3, 3);
+    }
+    else if(command == 4)
+    {
+      select_mode(3);
+      Serial.println("Module Version: ");
+      delay(1000);
+      uint8_t MSG4[3] = {0xC3, 0xC3, 0xC3};
+      lora.write(MSG4, 3);
+    }
+//  switch (command)
+//  {
+//    case 0:
+//      select_mode(3);
+//      delay(1000);
+//      uint8_t CMD[3] = {0xC9, 0xC9, 0xC9};
+//      lora.write(CMD, 3);
+//      break;
+//    case 1:
+//      select_mode(0);
+//      delay(1000);
+//      uint8_t MSG[5] = {0x68, 0x65, 0x6C, 0x6C, 0x6F};
+//      lora.write(MSG, 5);
+//      break;
+//    case 2:
+//      select_mode(3);
+//      delay(1000);
+//      uint8_t MSG2[3] = {0xE1, 0xE1, 0xE1};
+//      lora.write(MSG2, 3);
+//      break;
+//    case 3:
+//      select_mode(3);
+//      Serial.println("Current Config: ");
+//      delay(1000);
+//      uint8_t MSG3[3] = {0xC1, 0xC1, 0xC1};
+//      lora.write(MSG3, 3);
+//      break;
+//    case 4:
+//      select_mode(3);
+//      Serial.println("Module Version: ");
+//      delay(1000);
+//      uint8_t MSG4[3] = {0xC3, 0xC3, 0xC3};
+//      lora.write(MSG4, 3);
+//      break;
+//  }
 }
