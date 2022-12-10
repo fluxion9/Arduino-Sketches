@@ -54,6 +54,10 @@ void check_response()
     {
       send_command(4);
     }
+    else if(data == 'E')
+    {
+      send_command(1);
+    }
 //    switch(data)
 //    {
 //      case 'A':
