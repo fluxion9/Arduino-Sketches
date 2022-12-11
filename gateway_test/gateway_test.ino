@@ -58,6 +58,10 @@ void check_response()
     {
       send_command(1);
     }
+    else if(data == 'F')
+    {
+      send_command(5);
+    }
 //    switch(data)
 //    {
 //      case 'A':
@@ -145,6 +149,12 @@ void send_command(byte command)
       delay(1000);
       uint8_t MSG4[3] = {0xC3, 0xC3, 0xC3};
       lora.write(MSG4, 3);
+    }
+    else if(command == 5)
+    {
+      select_mode(0);
+      Serial.println("Data Mode: ");
+      delay(1000);
     }
 //  switch (command)
 //  {
