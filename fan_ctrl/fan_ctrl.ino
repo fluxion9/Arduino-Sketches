@@ -56,28 +56,18 @@ struct FCtrl
     fan_state = off;
     count = 0;
     avg = 0;
-    upper = 30.0;
+    upper = 50.0;
     lower = 25.0;
     dev_mode = 0;
     last_count = 0;
     tick_rate = 1000;
     count_period = 0;
-    max_period = 300;
+    max_period = 180;
 
     stop_fan();
     
     greet();
 
-  }
-  void scan(void)
-  {
-    if (millis() - prev_scan >= scan_rate)
-    {
-      int motion = digitalRead(doplr_sense);
-      avg += float(motion);
-      count++;
-      prev_scan = millis();
-    }
   }
   void countdown(void)
   {
@@ -109,23 +99,6 @@ struct FCtrl
   {
     digitalWrite(relay, 0);
   }
-  void check_presence(void)
-  {
-    if (millis() - prev_sense >= posense)
-    {
-      avg /= count;
-      if (avg >= 0.5)
-      {
-        presence = true;
-      }
-      else {
-        presence = false;
-      }
-      avg = 0.0;
-      count = 0;
-      prev_sense = millis();
-    }
-  }
   void measure_temp(void)
   {
     float t = dht.readTemperature();
@@ -156,21 +129,21 @@ struct FCtrl
         lcd.setCursor(0, 0);
         lcd.print("  *FAN CONTROL  ");
         lcd.setCursor(0, 1);
-        lcd.print("Temp: " + String(temperature));
+        lcd.print("Temp: " + String(temperature, 1));
       }
       else if (mode == 1)
       {
         lcd.setCursor(0, 0);
         lcd.print("  SET HIGH INT  ");
         lcd.setCursor(0, 1);
-        lcd.print("High: " + String(upper));
+        lcd.print("High: " + String(upper, 1));
       }
       else if (mode == 2)
       {
         lcd.setCursor(0, 0);
         lcd.print("  SET LOWR INT  ");
         lcd.setCursor(0, 1);
-        lcd.print("Low: " + String(lower));
+        lcd.print("Low: " + String(lower, 1));
       }
       last_millis = millis();
     }
@@ -180,6 +153,7 @@ struct FCtrl
     digitalWrite(buzzer, 1);
     delay(100);
     digitalWrite(buzzer, 0);
+    delay(200);
   }
 
   byte read_keys()
@@ -241,9 +215,7 @@ struct FCtrl
   {
     if (dev_mode == 0)
     {
-      //scan();
       measure_temp();
-      //check_presence();
       countdown();
       control_fan();
       display(0);
@@ -262,9 +234,7 @@ struct FCtrl
     }
     else if (dev_mode == 1)
     {
-      //scan();
       measure_temp();
-      //check_presence();
       countdown();
       control_fan();
       display(1);
@@ -292,11 +262,7 @@ struct FCtrl
     }
     else if (dev_mode == 2)
     {
-      //scan();
       measure_temp();
-      //check_presence();
-      countdown();
-      control_fan();
       display(2);
       byte val = read_keys();
       switch (val)

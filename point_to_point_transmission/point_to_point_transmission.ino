@@ -13,7 +13,7 @@
 
 #define Tx_ADDH 0xFF
 #define Tx_ADDL 0x01
-#define SPEED 0x1D
+#define SPEED 0x24
 #define Tx_CHAN 0x1C
 #define Rx_CHAN 0x1D
 #define OPTION 0xC0
@@ -33,12 +33,11 @@ void setup() {
   pinMode(Aux, 0);
   pinMode(13, 1);
 
-  lora.begin(9600);
+  lora.begin(19200);
   Serial.begin(9600);
 
   select_mode(0);
-  delay(1000);
-  send_BP2P("{\"addr_h\":255, \"addr_l\":1, \"data\":{\"key0\":12345, \"key1\":\"Hi there!\", \"key2\":\"This isssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss a wayyyyyyyyyyyyy longgggggggg stringgggggg, longerrrrrrrrrrrr loooooooonnnnnnnngerrrrrrrrrrrrrrrrr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!###############################################################################################################################################################################adchhcaysgcuysguyaywfgwftydghaydfxhdftysfgacdcjqiwetuywek,shdhvdwcdfagafgdghgagsvshFrom Isaac\"}}", 2);
+  delay(2000);
 }
 
 void loop() {
@@ -50,23 +49,15 @@ void check_response()
 {
   if (lora.available())
   {
-    while (lora.available() > 0)
+    while (lora.available() > 1)
     {
       Serial.write(lora.read());
     }
   }
   if (Serial.available() > 0)
   {
-    while(Serial.available() > 0)
-    {
-      delay(3);
-      char d = Serial.read();
-      data += d;
-    }
-    Serial.print("Got: ");
-    Serial.println(data);
-    send_BP2P(data, 2);
-    data = "";
+    data = Serial.readString();
+    send_BP2P(data, 0);
   }
 }
 
@@ -77,7 +68,7 @@ void send_BP2P(String msg, byte channel)
     select_mode(0);
     delay(100);
     msg.toCharArray(msg_buf, 32);
-    uint8_t buf[3] = {PREFIX, PREFIX, Tx_CHAN};
+    uint8_t buf[3] = {Tx_ADDH, Tx_ADDL, Tx_CHAN};
     lora.write(buf, 3);
     lora.write(msg_buf, 32);
   }
@@ -89,15 +80,6 @@ void send_BP2P(String msg, byte channel)
     uint8_t buf[3] = {PREFIX, PREFIX, Rx_CHAN};
     lora.write(buf, 3);
     lora.write(msg_buf, 32);
-  }
-  else if (channel == 2)
-  {
-    select_mode(0);
-    delay(100);
-    uint8_t buf[3] = {PREFIX, PREFIX, Rx_CHAN};
-    lora.write(buf, 3);
-    lora.print(msg);
-    delay(100);
   }
 
 }

@@ -1,3 +1,4 @@
+{"addr_h":255, "addr_l":1, "data":{"key0":0, "key1":1}}
 #include <SoftwareSerial.h>
 
 #define M0 8

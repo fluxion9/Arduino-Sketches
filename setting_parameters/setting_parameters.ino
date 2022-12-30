@@ -8,11 +8,12 @@
 
 #define ROM 0xC0
 #define RAM 0xC2
-#define Rx_ADDH 0xF3
-#define Rx_ADDL 0x3F
-#define Tx_ADDH 0x3F
-#define Tx_ADDL 0xF3
-#define SPEED 0x1A
+#define Rx_ADDH 0x00
+#define Rx_ADDL 0x00
+#define Tx_ADDH 0xFF
+#define Tx_ADDL 0x01
+//#define SPEED 0x24
+#define SPEED 0x1D
 #define Tx_CHAN 0x1C
 #define Rx_CHAN 0x1D
 #define OPTION 0xC0
