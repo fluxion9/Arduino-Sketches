@@ -1,5 +1,6 @@
 #include <Servo.h>
 #include <LiquidCrystal_I2C.h>
+#include <FreqCount.h>
 
 
 Servo servo;
@@ -8,7 +9,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 #define servoPin 9
 #define set_pot A0
-#define tach_pin 9
+#define tach_pin 5
 
 
 struct PID
@@ -26,15 +27,15 @@ struct PID
 
         lcd.init();
         lcd.backlight();
+        FreqCount.begin(1000);
     }
     void measure_speed(void)
     {
-        unsigned long h, l, f;
-        h = pulseIn( tach_pin, 1 );
-        l = pulseIn( tach_pin, 0 );
-        f = h + l;
-        f = 1000000 / f;
-        speed_rpm = f / 60;
+        if(FreqCount.available())
+        {
+            unsigned long count = FreqCount.read();
+            speed_rpm = count / 60;
+        }
     }
     void read_pot(void)
     {
@@ -79,10 +80,10 @@ struct PID
 
 void setup()
 {
-
+    pid.init();
 }
 
 void loop()
 {
-    
+    pid.run();
 }
