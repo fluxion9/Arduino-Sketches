@@ -6,6 +6,7 @@
 #define LOOP 100
 
 #define lock 5
+#define len 4
 
 #define led_r A3
 #define led_b A0
@@ -87,7 +88,7 @@ struct Locker
     {
       display(7);
       read_keys();
-      if(pos >= 3)
+      if(pos >= len)
       {
         for(byte i = 0; i < 4; i++)
         {
@@ -107,7 +108,7 @@ struct Locker
   }
   void match_open(void)
   {
-    if (pos >= 3)
+    if (pos >= len)
     {
       if (input[0] == code[0] && input[1] == code[1] && input[2] == code[2] && input[3] == code[3])
       {
@@ -141,7 +142,7 @@ struct Locker
     {
       display(1);
       read_keys();
-      if (pos >= 3)
+      if (pos >= len)
       {
         switch (match_compare())
         {
@@ -153,14 +154,14 @@ struct Locker
             break;
         }
         set_input('$');
-        pos =0;
+        pos = 0;
       }
     }
     else if (mode_ == 2)
     {
       display(2);
       read_keys();
-      if (pos >= 3)
+      if (pos >= len)
       {
         for (byte i = 0; i < 4; i++)
         {
@@ -175,7 +176,7 @@ struct Locker
     {
       display(3);
       read_keys();
-      if (pos >= 3)
+      if (pos >= len)
       {
         if (input[0] == temp[0] && input[1] == temp[1] && input[2] == temp[2] && input[3] == temp[3])
         {
