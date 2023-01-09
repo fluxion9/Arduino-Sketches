@@ -11,6 +11,21 @@
 #define led_r A3
 #define led_b A0
 
+#define INPUT 0
+#define LAST_INPUT 1
+#define NEW_INPUT 2
+#define CONFIRM_INPUT 3
+#define SET_KEY 7
+
+#define GRANTED 4
+#define DENIED 5
+#define UNMATCH 6
+
+#define NORMAL 0
+#define CHANGE_PASSWORD 1
+#define NEW_PASSWORD 2
+#define CONFIRM_NEW_PASSWORD 3
+
 #define C0 9
 #define C1 8
 #define C2 7
@@ -41,10 +56,10 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 struct Locker
 {
   char code[4];
-  char input[4] = {'$', '%', '%', '%'};
-  char temp[4] = {'$', '%', '%', '%'};
+  char input[4] = {'$', '$', '$', '$'};
+  char temp[4] = {'$', '$', '$', '$'};
   int pos = 0;
-  byte MODE = 0;
+  byte MODE = NORMAL;
   unsigned long last_millis, refresh_rate = 500;
   void init()
   {
@@ -59,6 +74,7 @@ struct Locker
       digitalWrite(led_r, 0);
       delay(300);
     }
+    delay(1000);
     digitalWrite(led_r, 1);
     keypad.setDebounceTime(250);
 
@@ -80,11 +96,12 @@ struct Locker
   }
   void check_EEPROM(void)
   {
+    int ROM[4];
     for(byte i = 0; i < 4; i++)
     {
-      temp[i] = EEPROM.read(i);
+      ROM[i] = EEPROM.read(i);
     }
-    if(temp[0] && temp[1] && temp[2] && temp[3])
+    if(ROM[0] && ROM[1] && ROM[2] && ROM[3])
     {
       display(7);
       read_keys();
@@ -112,11 +129,11 @@ struct Locker
     {
       if (input[0] == code[0] && input[1] == code[1] && input[2] == code[2] && input[3] == code[3])
       {
-        display(3);
+        display(GRANTED);
         open_lock(5);
       }
       else {
-        display(4);
+        display(DENIED);
         delay(1000);
       }
       set_input('$');
@@ -132,34 +149,34 @@ struct Locker
   }
   void run_mode(byte mode_)
   {
-    if (mode_ == 0)
+    if (mode_ == NORMAL)
     {
-      display(0);
+      display(INPUT);
       read_keys();
       match_open();
     }
-    else if (mode_ == 1)
+    else if (mode_ == CHANGE_PASSWORD)
     {
-      display(1);
+      display(LAST_INPUT);
       read_keys();
       if (pos >= len)
       {
         switch (match_compare())
         {
           case true:
-            MODE = 2;
+            MODE = NEW_PASSWORD;
             break;
           case false:
-            MODE = 1;
+            MODE = CHANGE_PASSWORD;
             break;
         }
         set_input('$');
         pos = 0;
       }
     }
-    else if (mode_ == 2)
+    else if (mode_ == NEW_PASSWORD)
     {
-      display(2);
+      display(NEW_INPUT);
       read_keys();
       if (pos >= len)
       {
@@ -169,12 +186,12 @@ struct Locker
         }
         set_input('$');
         pos = 0;
-        MODE = 3;
+        MODE = CONFIRM_NEW_PASSWORD;
       }
     }
-    else if (mode_ == 3)
+    else if (mode_ == CONFIRM_NEW_PASSWORD)
     {
-      display(3);
+      display(CONFIRM_INPUT);
       read_keys();
       if (pos >= len)
       {
@@ -185,13 +202,13 @@ struct Locker
             code[i] = temp[i];
           }
           store_password();
-          MODE = 0;
+          MODE = NORMAL;
         }
         else
         {
-          display(6);
+          display(UNMATCH);
           delay(500);
-          MODE = 1;
+          MODE = CHANGE_PASSWORD;
         }
         set_input('$');
         pos = 0;
@@ -219,14 +236,19 @@ struct Locker
       {
         input[pos++] = key;
       }
-      else if (key == '/')
+      else if (key == '+')
       {
-        MODE = 1;
+        MODE = CHANGE_PASSWORD;
       }
       else if (key == '-')
       {
         pos = 0;
-        MODE = 0;
+        MODE = NORMAL;
+      }
+      else if (key == '/')
+      {
+        pos--;
+        input[pos] = '$';
       }
     }
   }
@@ -250,56 +272,56 @@ struct Locker
   {
     if (millis() - last_millis >= refresh_rate)
     {
-      if (slide == 0)
+      if (slide == INPUT)
       {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(" Enter Password ");
         display_input(input, 4);
       }
-      else if (slide == 1)
+      else if (slide == LAST_INPUT)
       {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(" Enter Last Key ");
         display_input(input, 4);
       }
-      else if (slide == 2)
+      else if (slide == NEW_INPUT)
       {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print(" Enter New Key  ");
         display_input(input, 4);
       }
-      else if (slide == 3)
+      else if (slide == CONFIRM_INPUT)
       {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Confirm Pass Key");
         display_input(input, 4);
       }
-      else if (slide == 7)
+      else if (slide == SET_KEY)
       {
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Confirm Pass Key");
+        lcd.print("Set the Pass Key");
         display_input(input, 4);
       }
       last_millis = millis();
     }
-    if (slide == 4)
+    if (slide == GRANTED)
     {
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("#ACCESS GRANTED#");
     }
-    else if (slide == 5)
+    else if (slide == DENIED)
     {
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("#ACCESS DENIED#");
     }
-    else if (slide == 6)
+    else if (slide == UNMATCH)
     {
       lcd.clear();
       lcd.setCursor(0, 0);
