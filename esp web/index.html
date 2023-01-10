@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login Interface</title>
+    <style>
+      /* CSS styles for the login page */
+      body {
+        background-color: #f2f2f2;
+        font-family: Arial, sans-serif;
+      }
+      .login-box {
+        width: 300px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        margin: 100px auto;
+        background-color: #fff;
+      }
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+      input[type="text"], input[type="password"] {
+        width: 100%;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+      }
+      input[type="submit"] {
+        background-color: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      /* Add this new CSS for the "Change Password" button */
+      .password-change-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-box">
+        <img src = "lock.jpg" height="100px" width="100px" style="margin-left: 35%; padding-bottom: 30px; padding-top: 20px;"></img>
+      <form action="" method="post">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" placeholder="Enter your Password" required>
+        <input type="submit" value="Enter">
+        <button class="password-change-button" type="button" onclick="location.href='change password.html'">Change Password</button>
+      </form>
+    </div>
+  </body>
+</html>

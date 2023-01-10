@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form class="pure-form">
+        <fieldset>
+            <legend>Confirm password with HTML5</legend>
+    
+            <input type="password" placeholder="Password" id="password" value="" required>
+            <input type="password" placeholder="Confirm Password" id="confirm_password" value="" required>
+    
+            <button type="submit" class="pure-button pure-button-primary">Confirm</button>
+        </fieldset>
+    </form>
+</body>
+
+<script type="text/javascript">
+    var password = document.getElementById("password"), confirm_password = document.getElementById("confirm_password");
+    function validatePassword(){
+    if(password.value != confirm_password.value) {
+        confirm_password.setCustomValidity("Passwords Don't Match");
+    } else {
+        confirm_password.setCustomValidity('');
+    }
+    }
+    password.onchange = validatePassword;
+    confirm_password.onkeyup = validatePassword;
+</script>
+
+</html>
