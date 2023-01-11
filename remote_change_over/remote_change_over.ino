@@ -1,16 +1,22 @@
-#define relay_1 5
-#define relay_2 6
-#define relay_3 7
+#include <LiquidCrystal_I2C.h>
+
+#define relay_1 11
+#define relay_2 10
+#define relay_3 9
 
 #define led_red 8
-#define led_yellow 9
-#define led_blue 10
+#define led_yellow 7
+#define led_blue 6
 
-#define AC_1 A5
-#define AC_2 A4
-#define AC_3 A3
+#define AC_1 A3
+#define AC_2 A1
+#define AC_3 A2
 
 #define threshold_voltage 50.0
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+String data = "", Buffer = "";
 
 struct AC_Selector
 {
@@ -23,19 +29,41 @@ struct AC_Selector
 
   uint32_t i, last_selected_phase = 0, selected_phase = 0, last_disp, last_blink, refresh_rate = 1000;
 
-  String data = "", Buffer = "";
-  
   void init(void)
   {
-    for(i = 0; i < 3; i++)
+    for (i = 0; i < 3; i++)
     {
-        pinMode(relay[i], 1);
-        pinMode(led[i], 1);
-        pinMode(phase[i], 0);
+      pinMode(relay[i], 1);
+      pinMode(led[i], 1);
+      pinMode(phase[i], 0);
 
-        phase_voltage[i] = 0.0;
-        phase_state[i] = false;
+      phase_voltage[i] = 0.0;
+      phase_state[i] = false;
+
     }
+    for (i = 0; i < 3; i++)
+    {
+      digitalWrite(led[i], 1);
+      delay(200);
+    }
+
+    delay(1500);
+    lcd.init();
+    lcd.backlight();
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("wChangeOver     ");
+    lcd.setCursor(0, 1);
+    lcd.print("Initializing... ");
+
+    for (i = 0; i < 3; i++)
+    {
+      digitalWrite(led[i], 0);
+      delay(200);
+    }
+
+    delay(500);
+    lcd.clear();
 
     Serial.begin(9600);
 
@@ -43,44 +71,47 @@ struct AC_Selector
   void run(void)
   {
     measureVoltage();
-    display(1);
+    display(0);
     select_phase();
-    if(Serial.available())
+    if (Serial.available())
     {
-      while(Serial.available() > 0)
+      data = Serial.readStringUntil(';');
+      if (data.length() > 0)
       {
-        delay(3);
-        char d = Serial.read();
-        data += d;
-      }
-      if(data == "+set1")
-      {
-        selected_phase = 1;
-      }
-      else if(data == "+set2")
-      {
-        selected_phase = 2;
-      }
-      else if(data == "+set3")
-      {
-        selected_phase = 3;
-      }
-      else if(data == "+read")
-      {
-        load_buffer();
-        Serial.println(Buffer);
+        if (data == "+set1")
+        {
+          selected_phase = 1;
+        }
+        else if (data == "+set2")
+        {
+          selected_phase = 2;
+        }
+        else if (data == "+set3")
+        {
+          selected_phase = 3;
+        }
+        else if (data == "+unset")
+        {
+          selected_phase = 0;
+        }
+        else if (data == "+read")
+        {
+          load_buffer();
+          Serial.println(Buffer);
+        }
+        data = "";
       }
     }
   }
   void blink_selected_phase(void)
   {
-    if((millis() - last_blink) >= 1000)
+    if ((millis() - last_blink) >= 1000)
     {
-      for(i = 0; i < 3; i++)
+      for (i = 0; i < 3; i++)
       {
-        if(selected_phase == (i+1))
+        if (selected_phase == (i + 1))
         {
-          if(phase_state[i] == true)
+          if (phase_state[i] == true)
           {
             digitalWrite(led[i], !phase_state[i]);
             phase_state[i] = !phase_state[i];
@@ -91,7 +122,7 @@ struct AC_Selector
           }
         }
         else {
-          if(phase_voltage[i] >= threshold_voltage)
+          if (phase_voltage[i] >= threshold_voltage)
           {
             digitalWrite(led[i], 1);
             phase_state[i] = true;
@@ -107,26 +138,26 @@ struct AC_Selector
   }
   void select_phase(void)
   {
-    if(selected_phase == 0)
+    if (selected_phase == 0)
     {
-      for(i = 0; i < 3; i++)
+      for (i = 0; i < 3; i++)
       {
         digitalWrite(relay[i], 0);
       }
       blink_selected_phase();
     }
     else {
-      if(selected_phase != last_selected_phase)
+      if (selected_phase != last_selected_phase)
       {
-        for(i = 0; i < 3; i++)
+        for (i = 0; i < 3; i++)
         {
           digitalWrite(relay[i], 0);
         }
         last_selected_phase = selected_phase;
       }
-      for(i = 0; i < 3; i++)
+      for (i = 0; i < 3; i++)
       {
-        if((i + 1) == selected_phase)
+        if ((i + 1) == selected_phase)
         {
           digitalWrite(relay[i], 1);
         }
@@ -152,7 +183,7 @@ struct AC_Selector
   {
     float val0 = 0, val1 = 0, val2 = 0;
     float maxpk0 = 0, maxpk1 = 0, maxpk2 = 0;
-    unsigned long Time = millis(), sampleTime = 1000;
+    unsigned long Time = millis(), sampleTime = 1500;
     while (millis() - Time <= sampleTime)
     {
       for (int i = 0; i < 300; ++i)
@@ -210,8 +241,20 @@ struct AC_Selector
   }
   void display(byte slide)
   {
+    if ((millis() - last_disp) >= refresh_rate)
+    {
+      if (slide == 0)
+      {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(" AC1  AC2  AC3  ");
+        lcd.setCursor(0, 1);
+        lcd.print(String(phase_voltage[0], 0) + "V, " + String(phase_voltage[1], 0) + "V, " + String(phase_voltage[2], 0) + "V");
+      }
+      last_disp = millis();
+    }
   }
-}ac_selector;
+} ac_selector;
 
 void setup() {
   ac_selector.init();
