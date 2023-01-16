@@ -3,6 +3,8 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+#include "EEPROM.h"
+
 #define lockPin 2
 #define statusLed 14
 #define errorLed 15
@@ -10,6 +12,8 @@
 
 #define Delay 5000
 #define opened 100
+
+#define Root_Address 0
 
 const char* ssid = "Locker @ 192.168.4.1";
 const char* password = "";
@@ -22,7 +26,7 @@ int lockState = -opened;
 
 void showActivity()
 {
-  for(int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++)
   {
     digitalWrite(statusLed, LOW);
     delay(100);
@@ -30,6 +34,31 @@ void showActivity()
     delay(100);
   }
 }
+
+void storePassword(int addrOffset)
+{
+  byte len = PASSWORD.length();
+  EEPROM.write(addrOffset, len);
+  for (int i = 0; i < len; i++)
+  {
+    EEPROM.write(addrOffset + 1 + i, PASSWORD[i]);
+  }
+  EEPROM.commit();
+  delay(500);
+}
+
+String readPassword(int addrOffset)
+{
+  int newStrLen = EEPROM.read(addrOffset);
+  char Data[newStrLen + 1];
+  for (int i = 0; i < newStrLen; i++)
+  {
+    Data[i] = EEPROM.read(addrOffset + 1 + i);
+  }
+  Data[newStrLen] = '\0';
+  return String(Data);
+}
+
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -387,7 +416,6 @@ struct Lock
   bool set = false;
     void init(void)
     {
-        delay(2000);
         pinMode(lockPin, OUTPUT);
         pinMode(statusLed, OUTPUT);
         pinMode(errorLed, OUTPUT);
@@ -396,6 +424,7 @@ struct Lock
         digitalWrite(statusLed, LOW);
         digitalWrite(errorLed, HIGH);
         digitalWrite(passLed, LOW);
+        delay(2000);
         Serial.begin(115200);
         Serial.println("Setting WiFi Access point...");
         WiFi.softAP(ssid); // no password
@@ -406,6 +435,24 @@ struct Lock
         PASSWORD = "Def@ult1.0";
         Serial.print("Default Password: ");
         Serial.println(PASSWORD);
+
+        if(!EEPROM.begin(1000))
+        {
+          Serial.println("Failed to initialise EEPROM");
+          Serial.println("Restarting...");
+          delay(1000);
+          ESP.restart();
+        }
+
+        if(EEPROM.read(Root_Address) == 0)
+        {
+          Serial.println("EEPROM empty, setting default password...");
+          storePassword(Root_Address);
+        }
+        else {
+          Serial.println("EEPROM not empty, reading password...");
+          PASSWORD = readPassword(Root_Address);
+        }
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
         showActivity();
@@ -425,8 +472,15 @@ struct Lock
           String c_psw = request->getParam(2)->value();
           if(psw == PASSWORD && (n_psw == c_psw))
           {
-            PASSWORD = n_psw;
-            request->send_P(200, "text/html", success_change);
+            if(PASSWORD == n_psw)
+            {
+              request->send_P(200, "text/html", success_change);
+            }
+            else {
+              PASSWORD = n_psw;
+              storePassword(Root_Address);
+              request->send_P(200, "text/html", success_change);
+            }
           }
         });
 
@@ -447,11 +501,14 @@ struct Lock
 
         server.begin();
     }
+
     void run(void)
     {
       if((millis() - last_millis) >= 500)
       {
         Serial.println("Loop() is running.");
+        Serial.print("PASSWORD = ");
+        Serial.println(PASSWORD);
         if(lockState == opened && !set)
         {
           digitalWrite(lockPin, HIGH);
