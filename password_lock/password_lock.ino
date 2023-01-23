@@ -26,28 +26,50 @@
 #define NEW_PASSWORD 2
 #define CONFIRM_NEW_PASSWORD 3
 
-#define C0 9
-#define C1 8
-#define C2 7
-#define C3 6
 
-#define R0 13
-#define R1 12
-#define R2 11
-#define R3 10
+//#define C0 11
+//#define C1 12
+//#define C2 13
+//
+//#define R0 7
+//#define R1 8
+//#define R2 9
+//#define R3 10
+
+#define C0 10
+#define C1 11
+#define C2 12
+#define C3 13
+
+#define R0 6
+#define R1 7
+#define R2 8
+#define R3 9
 
 
 const byte ROWS = 4;
 const byte COLS = 4;
 
+//const byte COLS = 3;
+
 char keys[ROWS][COLS] = {
   {'1', '2', '3', '/'},
-  {'4', '5', '6', 'x'},
+  {'4', '5', '6', '.'},
   {'7', '8', '9', '+'},
   {'*', '0', '#', '-'}
 };
+
+//char keys[ROWS][COLS] = {
+//  {'1','2','3'},
+//  {'4','5','6'},
+//  {'7','8','9'},
+//  {'*','0','#'}
+//};
+
 byte rowPins[ROWS] = {R0, R1, R2, R3};
 byte colPins[COLS] = {C0, C1, C2, C3};
+//byte colPins[COLS] = {C0, C1, C2};
+
 
 
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
@@ -55,9 +77,12 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 struct Locker
 {
+  int modPos = 0;
+
   char code[4];
   char input[4] = {'$', '$', '$', '$'};
   char temp[4] = {'$', '$', '$', '$'};
+
   int pos = 0;
   byte MODE = NORMAL;
   unsigned long last_millis, refresh_rate = 500;
@@ -67,19 +92,21 @@ struct Locker
 
     pinMode(led_r, 1);
     pinMode(led_b, 1);
-    for(byte i = 0; i < 3; ++i)
+    
+    for (byte i = 0; i < 3; ++i)
     {
       digitalWrite(led_b, 1);
       delay(300);
-      digitalWrite(led_r, 0);
+      digitalWrite(led_b, 0);
       delay(300);
     }
-    delay(1000);
     digitalWrite(led_r, 1);
     keypad.setDebounceTime(250);
 
     lcd.init();
     lcd.backlight();
+
+    welcome();
 
     check_EEPROM();
   }
@@ -97,24 +124,28 @@ struct Locker
   void check_EEPROM(void)
   {
     int ROM[4];
-    for(byte i = 0; i < 4; i++)
+    for (byte i = 0; i < 4; i++)
     {
       ROM[i] = EEPROM.read(i);
     }
-    if(ROM[0] && ROM[1] && ROM[2] && ROM[3])
+    if (ROM[0] == 0 && ROM[1] == 0 && ROM[2] == 0 && ROM[3] == 0)
     {
-      display(7);
-      read_keys();
-      if(pos >= len)
+      while (1)
       {
-        for(byte i = 0; i < 4; i++)
+        display(7);
+        read_keys();
+        if (pos >= len)
         {
-          code[i] = input[i];
+          for (byte i = 0; i < 4; i++)
+          {
+            code[i] = input[i];
+          }
+          store_password();
+          set_input('$');
+          pos = 0;
+          break;
         }
-        store_password();
       }
-      set_input('$');
-      pos = 0;
     }
     else {
       recover_password();
@@ -122,6 +153,13 @@ struct Locker
   }
   void welcome(void)
   {
+    lcd.setCursor(0, 0);
+    lcd.print(" Password Lock  ");
+    lcd.setCursor(0, 1);
+    delay(1000);
+    lcd.print("starting...     ");
+    delay(2500);
+    lcd.clear();
   }
   void match_open(void)
   {
@@ -227,6 +265,7 @@ struct Locker
       return false;
     }
   }
+
   void read_keys()
   {
     char key = keypad.getKey();
@@ -235,6 +274,8 @@ struct Locker
       if (isAlphaNumeric(key))
       {
         input[pos++] = key;
+        //input[modPos % 4] = key;
+        //modPos++;
       }
       else if (key == '+')
       {
@@ -252,6 +293,7 @@ struct Locker
       }
     }
   }
+
   void store_password()
   {
     for (byte i = 0; i < 4; i++)
@@ -328,19 +370,31 @@ struct Locker
       lcd.print("  Match Error!  ");
     }
   }
+  void test(void)
+  {
+    read_keys();
+    display_input(input, 4);
+  }
   void display_input(char inp[], int size)
   {
+    lcd.setCursor(5, 1);
+    lcd.print('[');
+    lcd.setCursor(10, 1);
+    lcd.print(']');
     for (byte i = 6; i <= 9; i++)
     {
-      if (inp[i - 6] != '$')
-      {
-        lcd.setCursor(i, 1);
-        lcd.print("*");
-      }
-      else {
-        lcd.setCursor(i, 1);
-        lcd.print(" ");
-      }
+//      lcd.setCursor(i, 1);
+//      lcd.print(inp[i - 6]);
+      
+       if (inp[i - 6] != '$')
+       {
+         lcd.setCursor(i, 1);
+         lcd.print("*");
+       }
+       else {
+         lcd.setCursor(i, 1);
+         lcd.print(" ");
+       }
     }
   }
   void run(int times)
@@ -365,4 +419,5 @@ void setup() {
   locker.run(LOOP);
 }
 void loop() {
+  //locker.test();
 }

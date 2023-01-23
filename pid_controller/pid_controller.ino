@@ -18,8 +18,8 @@ struct PID
     last_read = 0,
     refresh_rate = 500,
     pot_val = 0,
-    freq = 0,
-    servo_val = 0;
+    freq = 0;
+    int servo_val = 0;
     
     void init(void)
     {
@@ -29,14 +29,12 @@ struct PID
         lcd.init();
         lcd.backlight();
         servo.attach(servo_pin);
-        servo.write(180);
-        delay(1000);
         servo.write(0);
         delay(5000);
     }
     void read_speed(void)
     {
-      if((millis() - last_read) >= 500)
+      if((millis() - last_read) >= 100)
       {
         buf = "";
         Wire.requestFrom(0x40, 10);
@@ -78,18 +76,28 @@ struct PID
         display(0);
         if(pot_val > speed_rpm)
         {
-            servo_val += 1;
-            servo_val = constrain(servo_val, 0, 180);
+            servo_val++;
+            servo_val = constrain(servo_val, 0, 150);
             servo.write(servo_val);
+            delay(15);
         }
         if(pot_val < speed_rpm)
         {
-            servo_val -= 1;
-            servo_val = constrain(servo_val, 0, 180);
+            servo_val--;
+            servo_val = constrain(servo_val, 0, 150);
             servo.write(servo_val);
+            delay(15);
         }
-        
     }
+
+    void test(void)
+    {
+      read_pot();
+      read_speed();
+      display(0);
+      servo.write(pot_val);
+    }
+    
 }pid;
 
 void setup()
@@ -99,5 +107,6 @@ void setup()
 
 void loop()
 {
-    pid.run();
+  // pid.test();
+  pid.run();
 }
