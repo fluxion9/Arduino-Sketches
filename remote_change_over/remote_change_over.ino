@@ -171,11 +171,11 @@ struct AC_Selector
   void load_buffer(void)
   {
     Buffer = "";
-    Buffer.concat("{");
+    Buffer.concat("{\"v1\":");
     Buffer.concat(phase_voltage[0]);
-    Buffer.concat(",");
+    Buffer.concat(",\"v2\":");
     Buffer.concat(phase_voltage[1]);
-    Buffer.concat(",");
+    Buffer.concat(",\"v3\":");
     Buffer.concat(phase_voltage[2]);
     Buffer.concat("}");
   }

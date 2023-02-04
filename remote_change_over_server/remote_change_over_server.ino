@@ -10,6 +10,8 @@ const char* password = "";
 
 AsyncWebServer server(80);
 
+String str_buffer = "";
+
 void select(int index)
 {
         
@@ -307,7 +309,7 @@ footer {
     </main>
 
     <footer>
-        EEE Mini porject &copy; UNN 2020
+        EEE Mini porject &copy; UNN 2023
     </footer>
     <script>
         var phase1 = document.querySelector(".phase-1");
@@ -391,15 +393,17 @@ footer {
 
 struct PDB
 {
+  unsigned long last_millis = 0;
     void init(void)
     {
         Serial.begin(115200);
-        Serial.println("Setting WiFi Access point...");
+        //Serial.println("Setting WiFi Access point...");
         WiFi.softAP(ssid); // no password
         IPAddress IP = WiFi.softAPIP();
-        Serial.print("AP IP address: ");
-        Serial.println(IP);
+        //Serial.print("AP IP address: ");
+        //Serial.println(IP);
 
+        str_buffer.reserve(32);
 
         server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
             request->send_P(200, "text/html", index_html);
@@ -407,32 +411,36 @@ struct PDB
 
         server.on("/select1", HTTP_GET, [](AsyncWebServerRequest * request) {
             select(1);
-            Serial.println("selecting 1st phase...");
+            //Serial.println("selecting 1st phase...");
+            Serial.println("+set1;");
             request->send(200);
         });
 
         server.on("/select2", HTTP_GET, [](AsyncWebServerRequest * request) {
             select(2);
-            Serial.println("selecting 2nd phase...");
+            //Serial.println("selecting 2nd phase...");
+            Serial.println("+set2;");
             request->send(200);
         });
 
         server.on("/select3", HTTP_GET, [](AsyncWebServerRequest * request) {
             select(3);
-            Serial.println("selecting 3rd phase...");
+            //Serial.println("selecting 3rd phase...");
+            Serial.println("+set3;");
             request->send(200);
         });
 
         server.on("/resetPhases", HTTP_GET, [](AsyncWebServerRequest * request) {
             select(ALL);
-            Serial.println("selecting 3rd phase...");
+            //Serial.println("selecting 3rd phase...");
+            Serial.println("+unset;");
             request->send(200);
         });
 
         server.on("/getVoltages", HTTP_GET, [](AsyncWebServerRequest * request) {
             select(3);
-            Serial.println("Reading AC phases...");
-            request->send_P(200, "text/plain", "{\"v1\":120,\"v2\":200,\"v3\":220}");
+            //Serial.println("Reading AC phases...");
+            request->send_P(200, "text/plain", str_buffer.c_str());
         });
 
         server.begin();
@@ -440,7 +448,22 @@ struct PDB
 
     void run(void)
     {
-
+        if(millis() - last_millis >= 1000)
+        {
+            Serial.println("+read;");
+            last_millis = millis();
+        }
+        if(Serial.available())
+        {
+            str_buffer = Serial.readStringUntil('}');
+            if(str_buffer.startsWith("{"))
+            {
+                str_buffer.concat("}");
+            }
+            else {
+                str_buffer = "";
+            }
+        }
     }
 }pdb;
 
@@ -452,5 +475,5 @@ void setup()
 
 void loop()
 {
-
+    pdb.run();
 }
