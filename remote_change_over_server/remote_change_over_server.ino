@@ -10,11 +10,11 @@ const char* password = "";
 
 AsyncWebServer server(80);
 
-String str_buffer = "";
+String str_buffer = "", ser_buf = "";
 
 void select(int index)
 {
-        
+
 }
 
 const char index_html[] PROGMEM = R"rawliteral(
@@ -396,7 +396,7 @@ struct PDB
   unsigned long last_millis = 0;
     void init(void)
     {
-        Serial.begin(115200);
+        Serial.begin(9600);
         //Serial.println("Setting WiFi Access point...");
         WiFi.softAP(ssid); // no password
         IPAddress IP = WiFi.softAPIP();
@@ -410,35 +410,30 @@ struct PDB
         });
 
         server.on("/select1", HTTP_GET, [](AsyncWebServerRequest * request) {
-            select(1);
             //Serial.println("selecting 1st phase...");
             Serial.println("+set1;");
             request->send(200);
         });
 
         server.on("/select2", HTTP_GET, [](AsyncWebServerRequest * request) {
-            select(2);
             //Serial.println("selecting 2nd phase...");
             Serial.println("+set2;");
             request->send(200);
         });
 
         server.on("/select3", HTTP_GET, [](AsyncWebServerRequest * request) {
-            select(3);
             //Serial.println("selecting 3rd phase...");
             Serial.println("+set3;");
             request->send(200);
         });
 
         server.on("/resetPhases", HTTP_GET, [](AsyncWebServerRequest * request) {
-            select(ALL);
             //Serial.println("selecting 3rd phase...");
             Serial.println("+unset;");
             request->send(200);
         });
 
         server.on("/getVoltages", HTTP_GET, [](AsyncWebServerRequest * request) {
-            select(3);
             //Serial.println("Reading AC phases...");
             request->send_P(200, "text/plain", str_buffer.c_str());
         });
@@ -448,22 +443,23 @@ struct PDB
 
     void run(void)
     {
-        if(millis() - last_millis >= 1000)
+        if(millis() - last_millis >= 5000)
         {
             Serial.println("+read;");
             last_millis = millis();
         }
-        if(Serial.available())
+        while(Serial.available() > 0)
         {
-            str_buffer = Serial.readStringUntil('}');
-            if(str_buffer.startsWith("{"))
-            {
-                str_buffer.concat("}");
-            }
-            else {
-                str_buffer = "";
-            }
+            delay(3);
+            char c = Serial.read();
+            ser_buf += c;
         }
+        if(ser_buf.length() > 0)
+        {
+          ser_buf.trim();
+          str_buffer = ser_buf;
+          ser_buf = "";
+        }  
     }
 }pdb;
 

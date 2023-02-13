@@ -71,36 +71,46 @@ struct AC_Selector
   void run(void)
   {
     measureVoltage();
+    fineTune();
     display(0);
     select_phase();
-    if (Serial.available())
+    while (Serial.available() > 0)
     {
-      data = Serial.readStringUntil(';');
-      if (data.length() > 0)
+      delay(3);
+      char c = Serial.read();
+      data += c;
+    }
+    if (data.length() > 0)
+    {
+      data.trim();
+//      lcd.clear();
+//      lcd.setCursor(0, 0);
+//      lcd.print(data);
+//      load_buffer();
+//      lcd.setCursor(0, 1);
+//      lcd.print(Buffer);
+      if (data == "+set1;")
       {
-        if (data == "+set1")
-        {
-          selected_phase = 1;
-        }
-        else if (data == "+set2")
-        {
-          selected_phase = 2;
-        }
-        else if (data == "+set3")
-        {
-          selected_phase = 3;
-        }
-        else if (data == "+unset")
-        {
-          selected_phase = 0;
-        }
-        else if (data == "+read")
-        {
-          load_buffer();
-          Serial.println(Buffer);
-        }
-        data = "";
+        selected_phase = 1;
       }
+      else if (data == "+set2;")
+      {
+        selected_phase = 2;
+      }
+      else if (data == "+set3;")
+      {
+        selected_phase = 3;
+      }
+      else if (data == "+unset;")
+      {
+        selected_phase = 0;
+      }
+      else if (data == "+read;")
+      {
+        load_buffer();
+        Serial.println(Buffer);
+      }
+      data = "";
     }
   }
   void blink_selected_phase(void)
@@ -179,11 +189,24 @@ struct AC_Selector
     Buffer.concat(phase_voltage[2]);
     Buffer.concat("}");
   }
+  void fineTune()
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      if(phase_voltage[i] < 100)
+      {
+        phase_voltage[i] = 0.0;
+      }
+      else {
+        phase_voltage[i] += 83.17;
+      }
+    }
+  }
   void measureVoltage(void)
   {
     float val0 = 0, val1 = 0, val2 = 0;
     float maxpk0 = 0, maxpk1 = 0, maxpk2 = 0;
-    unsigned long Time = millis(), sampleTime = 1500;
+    unsigned long Time = millis(), sampleTime = 1000;
     while (millis() - Time <= sampleTime)
     {
       for (int i = 0; i < 300; ++i)
@@ -232,9 +255,9 @@ struct AC_Selector
         }
       }
     }
-    maxpk0 = (maxpk0 * 505.0) / 1024.0;
-    maxpk1 = (maxpk1 * 505.0) / 1024.0;
-    maxpk2 = (maxpk2 * 505.0) / 1024.0;
+    maxpk0 = (maxpk0 * 505.0) / 1023.0;
+    maxpk1 = (maxpk1 * 505.0) / 1023.0;
+    maxpk2 = (maxpk2 * 505.0) / 1023.0;
     phase_voltage[0] = maxpk0 * 0.707;
     phase_voltage[1] = maxpk1 * 0.707;
     phase_voltage[2] = maxpk2 * 0.707;
