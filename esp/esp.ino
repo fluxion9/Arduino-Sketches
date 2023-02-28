@@ -5,6 +5,8 @@
 #define STAPSK  "psw123456"
 #endif
 
+String input = "";
+
 const char* ssid = STASSID;
 const char* password = STAPSK;
 
@@ -29,6 +31,45 @@ void setup() {
 }
 
 void loop() {
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    while (WiFi.status() != WL_CONNECTED) {
+      digitalWrite(LED_BUILTIN, 1);
+      delay(150);
+      digitalWrite(LED_BUILTIN, 0);
+      delay(150);
+      if (Serial.available())
+      {
+        char d = Serial.read();
+        if (d == '?')
+        {
+          Serial.println("[wl_disconnected]");
+        }
+      }
+    }
+  }
+  if (Serial.available())
+  {
+    while (Serial.available() > 0)
+    {
+      delay(3);
+      char d = Serial.read();
+      input += d;
+    }
+    if (input.length() > 0)
+    {
+      input.trim();
+      if (input == "IP?")
+      {
+        Serial.println(WiFi.localIP());
+      }
+      else if(input == "?")
+      {
+        Serial.println("[wl_connected]");
+      }
+      input = "";
+    }
+  }
   // Check if a client has connected
   WiFiClient client = server.available();
   if (!client) {
@@ -41,41 +82,39 @@ void loop() {
   int val;
   if (req.indexOf(F("/btn/1")) != -1) {
     Serial.println("A");
-  } 
-  else if (req.indexOf(F("/btn/2")) != -1) {
+  }
+  if (req.indexOf(F("/btn/2")) != -1) {
     Serial.println("a");
   }
-  else if (req.indexOf(F("/btn/3")) != -1) {
+  if (req.indexOf(F("/btn/3")) != -1) {
     Serial.println("B");
-  } 
-  else if (req.indexOf(F("/btn/4")) != -1) {
+  }
+  if (req.indexOf(F("/btn/4")) != -1) {
     Serial.println("b");
   }
-  else if (req.indexOf(F("/btn/5")) != -1) {
+  if (req.indexOf(F("/btn/5")) != -1) {
     Serial.println("C");
-  } 
-  else if (req.indexOf(F("/btn/6")) != -1) {
+  }
+  if (req.indexOf(F("/btn/6")) != -1) {
     Serial.println("c");
   }
-  else if (req.indexOf(F("/btn/7")) != -1) {
+  if (req.indexOf(F("/btn/7")) != -1) {
     Serial.println("D");
-  } 
-  else if (req.indexOf(F("/btn/8")) != -1) {
+  }
+  if (req.indexOf(F("/btn/8")) != -1) {
     Serial.println("d");
   }
-  else if (req.indexOf(F("/btn/9")) != -1) {
+  if (req.indexOf(F("/btn/9")) != -1) {
     Serial.println("E");
-  } 
-  else if (req.indexOf(F("/btn/10")) != -1) {
+  }
+  if (req.indexOf(F("/btn/a")) != -1) {
     Serial.println("e");
   }
-  else if (req.indexOf(F("/btn/11")) != -1) {
+  if (req.indexOf(F("/btn/b")) != -1) {
     Serial.println("F");
-  } 
-  else if (req.indexOf(F("/btn/12")) != -1) {
-    Serial.println("f");
   }
-  else {
+  if (req.indexOf(F("/btn/c")) != -1) {
+    Serial.println("f");
   }
   while (client.available()) {
     client.read();
@@ -85,7 +124,7 @@ void loop() {
   client.print(F("<h1 style = \"text-align: center;\"> WifiTooth Rev 1.1 </h1>\n"));
   client.print(F("<h3 style = \"text-align: center;\">ON   |  OFF</h3>\n"));
   client.print(F("<div style = \"border-radius: 2%; border: 2px solid black; width: 400px; height: 500px; margin-left: 50px; margin-top: 100px; position: absolute;\" >\n"));
-  
+
   client.print(F("<p style = \"padding: 20px; text-align: center;\">"));
   client.print(F("<a href=\"http://"));
   client.print(WiFi.localIP());
@@ -124,23 +163,23 @@ void loop() {
   client.print(F("/btn/9\"><button style = \"width: 100px; \" >btn9</button></a> | "));
   client.print(F("<a href=\"http://"));
   client.print(WiFi.localIP());
-  client.print(F("/btn/10\"><button style = \"width: 100px; \" >btn10</button></a></p>"));
+  client.print(F("/btn/a\"><button style = \"width: 100px; \" >btn10</button></a></p>"));
 
   client.print(F("<p style = \"padding: 20px; text-align: center;\">"));
   client.print(F("<a href=\"http://"));
   client.print(WiFi.localIP());
-  client.print(F("/btn/11\"><button style = \"width: 100px; \" >btn11</button></a> | "));
+  client.print(F("/btn/b\"><button style = \"width: 100px; \" >btn11</button></a> | "));
   client.print(F("<a href=\"http://"));
   client.print(WiFi.localIP());
-  client.print(F("/btn/12\"><button style = \"width: 100px; \" >btn12</button></a></p>"));
+  client.print(F("/btn/c\"><button style = \"width: 100px; \" >btn12</button></a></p>"));
 
-  
+
   client.print(F("</div></div></body></html>"));
 }
 
 void blynk(byte val)
 {
-  for(byte i = 0; i < val; i++)
+  for (byte i = 0; i < val; i++)
   {
     digitalWrite(LED_BUILTIN, 0);
     delay(100);
