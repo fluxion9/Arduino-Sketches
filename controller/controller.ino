@@ -1,11 +1,10 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
-#include "ACS712.h"
 
 LiquidCrystal_I2C lcd(0x27,16,2);
-ACS712  ACS(A1, 5.0, 1023, 100);
 
-String messages[3] = {"Hello World!", "Engine guys!", "Thank you!"};
+#define Relay 12
+#define Vin A1
 
 struct Writer
 {
@@ -15,8 +14,6 @@ struct Writer
     lcd.backlight();
     lcd.clear();
     lcd.setCursor(0, 0);
-    ACS.autoMidPoint();
-    lcd.print("  WRITER  TEST  ");
   }
   void clearRow(byte row)
   {
@@ -36,6 +33,21 @@ struct Writer
   }
 }writer;
 
+struct Controller
+{
+  void init() 
+  {
+    pinMode(Relay, 1);
+    pinMode(Vin, 0);
+    writer.init();
+    writer.write(0, 3, "Inverter", 100);
+    delay(500);
+    writer.write(1, 0, "Initializing...", 100);
+    delay(1000);
+    digitalWrite(Relay, 1);
+  }
+}control;
+
 float measureVoltageDC(byte pin, float Max)
 {
   float voltage = analogRead(pin);
@@ -43,13 +55,21 @@ float measureVoltageDC(byte pin, float Max)
   return voltage;
 }
 
+unsigned long last_millis = 0;
+
 void setup() {
-  writer.init();
+  control.init();
 }
 
 void loop() {
-  writer.write(1, 0, "Voltage: " + String(measureVoltageDC(A0, 55.0)), 100);
-  delay(500);
-  writer.write(1, 0, "Current: " + String(ACS.mA_DC()), 100);
-  delay(500);
+  float Voltage = measureVoltageDC(Vin, 505.0);
+  if((millis() - last_millis) >= 1000)
+  {
+    if (Voltage > 240.0)
+    {
+      Voltage = 240.0;
+    }
+    writer.write(1, 0, "Voltage: " + String(Voltage), 100);
+    last_millis = millis();
+  }
 }
