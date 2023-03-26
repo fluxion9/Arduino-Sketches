@@ -89,7 +89,7 @@ String public_key = "", private_key = "", compressed_public_key = "";
 byte pbk[64], pvk[32], cpbk[33];
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   uECC_set_rng(&RNG);
   if (EEPROM.read(root_addr) == 0)
   {
