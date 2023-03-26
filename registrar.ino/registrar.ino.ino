@@ -1,5 +1,7 @@
 #include <uECC.h>
+#include <EEPROM.h>
 
+#define root_addr 0
 extern "C" {
 
   int RNG(uint8_t *dest, unsigned size) {
@@ -57,6 +59,31 @@ void byteArrayToHexStr(byte* Array, int arraySize, String* memory)
   }
 }
 
+bool storePrivateKey(byte* key, int keySize, int address)
+{
+  if ((keySize + 1) <= (EEPROM.length() - 1 - address))
+  {
+    EEPROM.write(address, keySize);
+    for (int i = 0; i < keySize; i++)
+    {
+      EEPROM.write(address + 1 + i, key[i]);
+    }
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+void readPrivateKey(int address, byte* keyArray, int keyArraySize)
+{
+  int keySize = EEPROM.read(address);
+  for (int i = 0; i < keySize; i++)
+  {
+    keyArray[i] = EEPROM.read(address + 1 + i);
+  }
+}
+
 String public_key = "", private_key = "", compressed_public_key = "";
 
 byte pbk[64], pvk[32], cpbk[33];
@@ -64,19 +91,54 @@ byte pbk[64], pvk[32], cpbk[33];
 void setup() {
   Serial.begin(115200);
   uECC_set_rng(&RNG);
-  generatePrivAndPubKeyPairs(pbk, pvk, cpbk, 32, 64);
-  byteArrayToHexStr(pbk, sizeof(pbk), &public_key);
-  byteArrayToHexStr(pvk, sizeof(pvk), &private_key);
-  byteArrayToHexStr(cpbk, sizeof(cpbk), &compressed_public_key);
-  Serial.print("private key: ");
-  Serial.println(private_key);
-  Serial.println(private_key.length());
-  Serial.print("public key: ");
-  Serial.println(public_key);
-  Serial.println(public_key.length());
-  Serial.print("compressed public key: ");
-  Serial.println(compressed_public_key);
-  Serial.println(compressed_public_key.length());
+  if (EEPROM.read(root_addr) == 0)
+  {
+    Serial.println("EEPROM empty, Generating Private and Public Key pairs...");
+    generatePrivAndPubKeyPairs(pbk, pvk, cpbk, 32, 64);
+    Serial.println("Storing private key...");
+    if (!storePrivateKey(pvk, sizeof(pvk), root_addr))
+    {
+      Serial.println("Memory not Enough!");
+      while (true)
+      {
+        Serial.println("error!!");
+      }
+    }
+    byteArrayToHexStr(pvk, sizeof(pvk), &private_key);
+    byteArrayToHexStr(cpbk, sizeof(cpbk), &compressed_public_key);
+    Serial.print("private key: ");
+    Serial.println(private_key);
+    Serial.println(private_key.length());
+    Serial.print("compressed public key: ");
+    Serial.println(compressed_public_key);
+    Serial.println(compressed_public_key.length());
+  }
+  else {
+    Serial.println("EEPROM not empty, Reading private key...");
+    readPrivateKey(root_addr, pvk, sizeof(pvk));
+    byteArrayToHexStr(pvk, sizeof(pvk), &private_key);
+    Serial.print("private key: ");
+    Serial.println(private_key);
+    Serial.println(private_key.length());
+  }
+
+
+
+
+  
+  //  generatePrivAndPubKeyPairs(pbk, pvk, cpbk, 32, 64);
+  //  byteArrayToHexStr(pbk, sizeof(pbk), &public_key);
+  //  byteArrayToHexStr(pvk, sizeof(pvk), &private_key);
+  //  byteArrayToHexStr(cpbk, sizeof(cpbk), &compressed_public_key);
+  //  Serial.print("private key: ");
+  //  Serial.println(private_key);
+  //  Serial.println(private_key.length());
+  //  Serial.print("public key: ");
+  //  Serial.println(public_key);
+  //  Serial.println(public_key.length());
+  //  Serial.print("compressed public key: ");
+  //  Serial.println(compressed_public_key);
+  //  Serial.println(compressed_public_key.length());
 }
 
 void loop() {
