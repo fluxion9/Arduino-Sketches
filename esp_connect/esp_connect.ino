@@ -3,17 +3,21 @@ String data, payload;
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
+#include <ESP8266WiFiMulti.h>
 
-const char* ssid = "Iphone"; // The SSID (name) of the Wi-Fi network you want to connect to
-const char* password = "chiefbuydata";  // The password of the Wi-Fi network
+ESP8266WiFiMulti wifiMulti;
+const uint32_t connectTimeoutMs = 5000;
 
 void setup() {
   Serial.begin(9600);
+  WiFi.persistent(false);
   pinMode(LED_BUILTIN, 1);
   WiFi.mode(WIFI_STA);
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  wifiMulti.addAP("WiTooth", "psw12345");
+  wifiMulti.addAP("Iphone", "chiefbuydata");
+  wifiMulti.addAP("Data Logger", "datlog12345");
+  while (wifiMulti.run(connectTimeoutMs) != WL_CONNECTED) {
     digitalWrite(LED_BUILTIN, 1);
     delay(150);
     digitalWrite(LED_BUILTIN, 0);
@@ -33,7 +37,7 @@ void setup() {
 }
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED)
+  if (wifiMulti.run(connectTimeoutMs) != WL_CONNECTED)
   {
     while (WiFi.status() != WL_CONNECTED) {
       digitalWrite(LED_BUILTIN, 1);

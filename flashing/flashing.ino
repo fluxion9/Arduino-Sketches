@@ -1,11 +1,15 @@
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "ACS712.h"
 
-LiquidCrystal_I2C lcd(0x27,16,2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 ACS712  ACS(A1, 5.0, 1023, 100);
 
-String messages[3] = {"Hello World!", "Engine guys!", "Thank you!"};
+#include <SPI.h>
+#include <SD.h>
+
+#define cs 10
+String buf = "";
 
 struct Writer
 {
@@ -16,8 +20,19 @@ struct Writer
     lcd.clear();
     lcd.setCursor(0, 0);
     ACS.autoMidPoint();
-    lcd.print("  WRITER  TEST  ");
+    lcd.print("  DATA LOGGER   ");
+    while (!SD.begin(cs)) {
+      write(1, 0, "No or Bad SD :-(", 20);
+      delay(1000);
+    }
+    File dataFile = SD.open("datalog.csv", FILE_WRITE);
+    if (dataFile) {
+    dataFile.println("VOLTAGE(V),CURRENT(A),POWER(W)");
+    dataFile.close();
+    Serial.begin(9600);
   }
+  }
+  
   void clearRow(byte row)
   {
     lcd.setCursor(0, row);
@@ -29,12 +44,32 @@ struct Writer
     lcd.setCursor(col, row);
     for (int i = 0; i < message.length(); i++)
     {
-      lcd.setCursor(col+i, row);
+      lcd.setCursor(col + i, row);
       lcd.print(message[i]);
       delay(Delay);
     }
   }
+
+  void log(float param1, float param2, float param3)
+  {
+    buf = "";
+    buf.concat(param1);
+    buf.concat(",");
+    buf.concat(param2);
+    buf.concat(",");
+    buf.concat(param3);
+    File dataFile = SD.open("datalog.csv", FILE_WRITE);
+    if (dataFile) {
+    dataFile.println(buf);
+    dataFile.close();
+    Serial.println(buf);
+  }
+  }
+
+  
 }writer;
+
+unsigned long last_millis = 0;
 
 float measureVoltageDC(byte pin, float Max)
 {
@@ -48,8 +83,18 @@ void setup() {
 }
 
 void loop() {
-  writer.write(1, 0, "Voltage: " + String(measureVoltageDC(A0, 55.0)), 100);
+  float v = measureVoltageDC(A6, 55.0);
+  float i = ACS.mA_DC() / 1000;
+  float p = v * i;
+  writer.write(1, 0, "Voltage: " + String(v) + "V", 50);
   delay(500);
-  writer.write(1, 0, "Current: " + String(ACS.mA_DC()), 100);
+  writer.write(1, 0, "Current: " + String(i) + "A", 50);
   delay(500);
+  writer.write(1, 0, "Power: " + String(p) + "W", 50);
+  delay(500);
+  if(millis() - last_millis >= 3000)
+  {
+    writer.log(v, i, p);
+    last_millis = millis();
+  }
 }
