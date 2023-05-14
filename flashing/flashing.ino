@@ -10,7 +10,8 @@ ACS712  ACS(A1, 5.0, 1023, 100);
 
 #define cs 10
 String buf = "";
-
+String params1 = "api_key=ZVE893GCAYIE1SPT&field1=";
+String params2 = "api_key=ZVE893GCAYIE1SPT&field2=";
 struct Writer
 {
   void init(void)
@@ -62,7 +63,10 @@ struct Writer
     if (dataFile) {
     dataFile.println(buf);
     dataFile.close();
-    Serial.println(buf);
+    Serial.println(params1+String(param1));
+    delay(10000);
+    Serial.println(params2+String(param2));
+    delay(10000);
   }
   }
 
@@ -90,11 +94,12 @@ void loop() {
   delay(500);
   writer.write(1, 0, "Current: " + String(i) + "A", 50);
   delay(500);
-  writer.write(1, 0, "Power: " + String(p) + "W", 50);
+  writer.write(1, 0, "Logging Data... ", 50);
   delay(500);
   if(millis() - last_millis >= 3000)
   {
     writer.log(v, i, p);
     last_millis = millis();
   }
+  delay(2000);
 }

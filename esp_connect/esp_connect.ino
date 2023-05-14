@@ -1,35 +1,33 @@
 #include <Arduino.h>
+
 String data, payload;
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
-#include <ESP8266WiFiMulti.h>
 
-ESP8266WiFiMulti wifiMulti;
-const uint32_t connectTimeoutMs = 5000;
+const char* ssid = "Data Logger"; // The SSID (name) of the Wi-Fi network you want to connect to
+const char* password = "DatLog12345";  // The password of the Wi-Fi network
+
 
 void setup() {
   Serial.begin(9600);
-  WiFi.persistent(false);
   pinMode(LED_BUILTIN, 1);
   WiFi.mode(WIFI_STA);
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
-  wifiMulti.addAP("WiTooth", "psw12345");
-  wifiMulti.addAP("Iphone", "chiefbuydata");
-  wifiMulti.addAP("Data Logger", "datlog12345");
-  while (wifiMulti.run(connectTimeoutMs) != WL_CONNECTED) {
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
     digitalWrite(LED_BUILTIN, 1);
     delay(150);
     digitalWrite(LED_BUILTIN, 0);
     delay(150);
     if (Serial.available())
+    {
+      char d = Serial.read();
+      if (d == '?')
       {
-        char d = Serial.read();
-        if (d == '?')
-        {
-          Serial.println("[wl_disconnected]");
-        }
+        Serial.println("[wl_disconnected]");
       }
+    }
   }
   digitalWrite(LED_BUILTIN, 0);
   data.reserve(400);
@@ -37,7 +35,7 @@ void setup() {
 }
 
 void loop() {
-  if (wifiMulti.run(connectTimeoutMs) != WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED)
   {
     while (WiFi.status() != WL_CONNECTED) {
       digitalWrite(LED_BUILTIN, 1);
@@ -53,6 +51,7 @@ void loop() {
         }
       }
     }
+    ESP.wdtFeed();
   }
   if (Serial.available())
   {
@@ -64,27 +63,32 @@ void loop() {
       data += m;
     }
     data.trim();
-    if (data == "?")
+    if (data.length() > 0)
     {
-      Serial.println("[wl_connected]");
+      if (data == "?")
+      {
+        Serial.println("[wl_connected]");
+      }
+      else {
+        dump(data);
+      }
     }
-    else {
-      dump(data);
-    }
+    ESP.wdtFeed();
   }
+  ESP.wdtFeed();
 }
 
 
-  void dump(String msg)
-  {
-    HTTPClient http;
-    WiFiClient client;
-    String url = "http://api.thingspeak.com/update?";
-    url.concat(msg);
-    http.begin(client, url);
-    int httpCode = http.GET();
-    payload = http.getString();
-    payload.trim();
-    Serial.println(payload);
-    http.end();
-  }
+void dump(String msg)
+{
+  HTTPClient http;
+  WiFiClient client;
+  String url = "http://api.thingspeak.com/update?";
+  url.concat(msg);
+  http.begin(client, url);
+  int httpCode = http.GET();
+  payload = http.getString();
+  payload.trim();
+  Serial.println(payload);
+  http.end();
+}
