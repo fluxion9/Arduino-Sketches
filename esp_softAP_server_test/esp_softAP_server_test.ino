@@ -1,7 +1,7 @@
-#include <ESP8266WiFi.h>
+#include <ESP8266WiFi.h> //Includes the ESP8266 WiFi Library
 
-const char* ssid     = "JoshWireless";
-const char* password = "Josh2023";
+const char* ssid     = "JoshWireless"; //SSID of the WiFi
+const char* password = "Josh2023"; //Password of the WiFi Connection
 
 WiFiServer server(80);
 void setup() {

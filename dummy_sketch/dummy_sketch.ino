@@ -1,34 +1,60 @@
-#include <SoftwareSerial.h>
-SoftwareSerial sim(11, 12);
-
-void setup() {
-  sim.begin(9600);
-  Serial.begin(9600);
+bool isListData(String* data)
+{
+  if (data->startsWith("[") && data->endsWith("]"))
+  {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
-String data = "";
-
-void loop() {
-  if(Serial.available())
+String readStrList(String* memory, String strList, byte position)
+{
+  byte index = 0;
+  *memory = "";
+  for (int i = 0; i < strList.length(); i++)
   {
-    char c = Serial.read();
-    if(c == 's')
+    if (strList[i] == ',')
     {
-      sendSMS("+2347089182147");
+      index++;
+    }
+    if (index == position - 1)
+    {
+      memory->concat(strList[i]);
     }
   }
+  if (memory->startsWith(","))
+  {
+    *memory = memory->substring(memory->indexOf(',') + 1);
+  }
+  return *memory;
 }
 
-void sendSMS(String phoneNumber)
-  {
-    sim.println("AT");
-    delay(1000);
-    sim.println("AT+CMGF=1");
-    delay(1000);
-    sim.println("AT+CMGS=\"" + phoneNumber + "\"");
-    delay(1000);
-    sim.print("Trash Can is full at Hannah Orakwelu's place, please come and empty it. Thank you.");
-    delay(1000);
-    sim.write(26);
-    delay(1000);
-  }
+String data = "", mem = "";
+String Speed;
+void setup() {
+  Serial.begin(9600);
+  data.reserve(32);
+  mem.reserve(32);
+}
+
+void loop() {
+  while (Serial.available() > 0)
+    {
+      delay(3);
+      char c = Serial.read();
+      data += c;
+    }
+    if (data.length() > 0)
+    {
+      data.trim();
+      if (isListData(&data))
+      {
+        data = data.substring(data.indexOf('[')+1, data.indexOf(']'));
+        Speed = readStrList(&mem, data, 1);
+        Serial.println(Speed);
+      }
+      data = "";
+    }
+}
