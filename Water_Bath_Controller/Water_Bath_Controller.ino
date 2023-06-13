@@ -107,17 +107,14 @@ struct WaterBath
 
       if(paramNum == 0)
       {
-        sWriter.clearRow(screenPos);
         sWriter.write(screenPos, 0, "Set Temp: " + String(set_temp), 50);
       }
       else if(paramNum == 1)
       {
-        sWriter.clearRow(screenPos);
         sWriter.write(screenPos, 0, "Temp: " + String(temperature), 50);
       }
       else if(paramNum == 2)
       {
-        sWriter.clearRow(screenPos);
         sWriter.write(screenPos, 0, "IP: " + IP, 50);
       }
       lastDisplay = millis();
@@ -199,7 +196,6 @@ struct WaterBath
       data = "";
     }
   }
-  
 }wBath;
 
 
