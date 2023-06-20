@@ -11,7 +11,7 @@ int servoPosition = 20; // Variable that stores servo motor position in the RAM
 
 void setup() {
   myServo.attach(9); // servo will be attached to pin 9
-  myServo.write(servoPosition); // set ervo(solar tracker) to it's resting position i.e 20 degrees
+  myServo.write(servoPosition); // set servo(solar tracker) to it's resting position i.e 20 degrees
 }
 
 void loop() {
