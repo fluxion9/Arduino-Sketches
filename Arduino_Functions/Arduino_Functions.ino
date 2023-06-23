@@ -156,6 +156,13 @@ void blockingEvent()
   }
 }
 
+float fmap(float val, float fromLow, float fromHigh, float toLow, float toHigh)
+  {
+    float norm = (val - fromLow) / (fromHigh - fromLow);
+    float lerp = norm * (toHigh - toLow) + toLow;
+    return lerp;
+  }
+
 //void serializeJSON(String* buf)
 //{
 //  *buf = "";
