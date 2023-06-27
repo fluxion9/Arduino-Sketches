@@ -1,18 +1,18 @@
 #include <Servo.h>
 
 #define topThresh 4.0
-#define frontThresh 60.0
+#define frontThresh 30.0
 
 #define motor 9
 
-#define trig0 7
-#define trig1 6
+#define trig0 6
+#define trig1 8
 
-#define echo0 8
-#define echo1 5
+#define echo0 5
+#define echo1 7
 
-#define openPos 90
-#define closePos 6
+#define openPos 180
+#define closePos 0
 
 #define closed 0
 #define opened 1
@@ -34,12 +34,27 @@ struct AutoTrash
     servo.write(closePos);
 
     Serial.begin(9600);
+    pinMode(2, 1);
+    for(int i = 0; i < 3; i++)
+    {
+      digitalWrite(2, 1);
+      delay(300);
+      digitalWrite(2, 0);
+      delay(300);
+    }
   }
 
   float checkBin(void)
   {
     float distance = measureDistance(trig0, echo0);
-    return fmap(distance, 18.0, topThresh, 0, 100);
+    distance = fmap(distance, 18.0, topThresh, 0, 100);
+    if(distance < 0)
+    {
+      return 0;
+    }
+    else {
+      return distance;
+    }
   }
 
   bool checkPresence(void)

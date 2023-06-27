@@ -10,6 +10,139 @@ const char* password = "RBV-2023";
 AsyncWebServer server(80);
 
 const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Remote Control</title>
+  <style>
+    /* Fullscreen layout */
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    /* Remote control container */
+    .remote-control {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+
+    /* Button container */
+    .button-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px;
+    }
+
+    /* Buttons */
+    .remote-control button {
+      width: 150px;
+      height: 150px;
+      margin: 10px;
+      font-size: 18px;
+      border-radius: 50%;
+      border: none;
+    }
+
+    /* Forward button */
+    .forward {
+      background-color: #ff5c5c;
+    }
+
+    /* Backward button */
+    .backward {
+      background-color: #5c5cff;
+    }
+
+    /* Stop button */
+    .stop {
+      background-color: #cccccc;
+      color: #ffffff;
+    }
+
+    /* Turn left button */
+    .left {
+      background-color: #5cff5c;
+    }
+
+    /* Turn right button */
+    .right {
+      background-color: #ffff5c;
+    }
+  </style>
+</head>
+<body>
+  <div class="remote-control">
+    <div class="button-container">
+      <button class="forward" onclick="forward()">Forward</button>
+    </div>
+    <div class="button-container">
+      <button class="left" onclick="left()">Left</button>
+      <button class="stop" onclick="stop()">Stop</button>
+      <button class="right" onclick="right()">Right</button>
+    </div>
+    <div class="button-container">
+      <button class="backward" onclick="backward()">Backward</button>
+    </div>
+  </div>
+  <script lang="text/javascript">
+  function forward()
+  {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+      }
+      };
+      xhttp.open("GET", "/forward", true);
+      xhttp.send();
+  }
+  function backward()
+  {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+      }
+      };
+      xhttp.open("GET", "/backward", true);
+      xhttp.send();
+  }
+  function left()
+  {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+      }
+      };
+      xhttp.open("GET", "/turn-left", true);
+      xhttp.send();
+  }
+  function right()
+  {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+      }
+      };
+      xhttp.open("GET", "/turn-right", true);
+      xhttp.send();
+  }
+  function stop()
+  {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+      }
+      };
+      xhttp.open("GET", "/stop", true);
+      xhttp.send();
+  }
+  </script>
+</body>
+</html>
 )rawliteral";
 
 String data_buffer = "", ser_buf = "", input = "";
@@ -69,8 +202,7 @@ void setup() {
   input.reserve(20);
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
-    // request->send_P(200, "text/html", index_html);
-    request->send(200);
+    request->send_P(200, "text/html", index_html);
     });
 
    server.on("/forward", HTTP_GET, [](AsyncWebServerRequest * request) {
