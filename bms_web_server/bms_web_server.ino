@@ -319,6 +319,8 @@ void setup() {
     input.concat(request->getParam(2)->value());
     input.concat(",");
     input.concat(request->getParam(3)->value());
+    input.concat(",");
+    input.concat(request->getParam(4)->value());
     input.concat("]");
     Serial.println(input);
     request->send(200);

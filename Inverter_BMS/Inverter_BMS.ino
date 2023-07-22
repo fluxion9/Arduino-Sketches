@@ -19,8 +19,8 @@ byte cells[3] = {cell1, cell2, cell3}; //cell voltage divider array
 
 unsigned long lastMillis = 0; //initializing last time with 0
 
-float min_voltage = 15.0;
-float max_voltage = 17.0;
+float min_voltage = 15.0, v_offset = 0.5;
+float max_voltage = 17.0, max_v = max_voltage + v_offset;
 
 String Buffer = "", data = "", mem = "";
 
@@ -77,7 +77,7 @@ struct BMS
 
   unsigned long upTime = 0, lastInterval = 0;
 
-  int rcount = 0, batOvChgCount = 0, batUnChgCount = 0;
+  int rcount = 0, batUnChgCount = 0;
 
   float cell_voltage[3] = {0, 0, 0};
   float batteryVoltage = 0.0;
@@ -127,11 +127,11 @@ struct BMS
   {
     batteryVoltage = 0;
     rcount = 5;
-    
+
     cell_voltage[0] = 0.0;
     cell_voltage[1] = 0.0;
     cell_voltage[2] = 0.0;
-    
+
     for (byte i = 0; i < 3; ++i)
     {
       for (byte j = 0; j < rcount; ++j)
@@ -235,11 +235,13 @@ struct BMS
       data.trim();
       if (isListData(&data))
       {
-        data = data.substring(data.indexOf('[')+1, data.indexOf(']'));
+        data = data.substring(data.indexOf('[') + 1, data.indexOf(']'));
         Speed = readStrList(&mem, data, 1).toInt();
         chargeControlEnabled = readStrList(&mem, data, 2).toInt();
         min_voltage = readStrList(&mem, data, 3).toFloat();
         max_voltage = readStrList(&mem, data, 4).toFloat();
+        v_offset = readStrList(&mem, data, 5).toFloat();
+        max_v = max_voltage + v_offset;
       }
       else if (data == "+balanceBat" && !lock_state)
       {
@@ -270,26 +272,44 @@ struct BMS
     }
   }
 
+  float getMaxCellVoltage()
+  {
+    if (cell_voltage[0] == cell_voltage[1] && cell_voltage[0] == cell_voltage[2])
+    {
+      return cell_voltage[0];
+    }
+    else if (cell_voltage[0] > cell_voltage[1] && cell_voltage[0] > cell_voltage[2])
+    {
+      return cell_voltage[0];
+    }
+    else if (cell_voltage[1] > cell_voltage[0] && cell_voltage[1] > cell_voltage[2])
+    {
+      return cell_voltage[1];
+    }
+    else {
+      return cell_voltage[2];
+    }
+  }
+
   void Charge(void)
   {
     if (chargeControlEnabled)
     {
-      if (cell_voltage[0] > max_voltage || cell_voltage[1] > max_voltage || cell_voltage[2] > max_voltage)
+      if (getMaxCellVoltage() >= max_v)
       {
-        batOvChgCount++;
-        if (batOvChgCount >= 5)
-        {
-          digitalWrite(charge, 1);
-          charge_state = false;
-        }
+        digitalWrite(charge, 1);
+        charge_state = false;
+        max_v = max_voltage;
       }
       else {
         digitalWrite(charge, 0);
         charge_state = true;
+        max_v = max_voltage + v_offset;
       }
     }
     else {
-      batOvChgCount = 0;
+      digitalWrite(charge, 0);
+      charge_state = true;
     }
   }
 
@@ -337,6 +357,10 @@ struct BMS
     Buffer.concat(min_voltage);
     Buffer.concat(",\"es\":");
     Buffer.concat(Speed);
+    Buffer.concat(",\"vset\":");
+    Buffer.concat(max_v);
+    Buffer.concat(",\"vOft\":");
+    Buffer.concat(v_offset);
     Buffer.concat("}");
   }
 
