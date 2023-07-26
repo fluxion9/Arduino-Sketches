@@ -60,7 +60,7 @@ class Blinker
     }
 };
 
-Blinker blinkBlue(13, 300, 5000);
+Blinker blynk(13, 300, 5000);
 
 long speed = 128;
 
@@ -235,4 +235,5 @@ void setup() {
 
 void loop() {
   rbv.run();
+  blynk.Update();
 }
