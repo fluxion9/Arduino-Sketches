@@ -4,12 +4,12 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-const char* ssid     = "RoboVacuum";
-const char* password = "RBV-2023";
+const char* ssid     = "RoboTrash";
+const char* password = "RTS-2023";
 
 AsyncWebServer server(80);
 
-const char index_html[] PROGMEM = R"rawliteral(
+const char remote_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
@@ -97,7 +97,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       if (this.readyState == 4 && this.status == 200) {
       }
       };
-      xhttp.open("GET", "/forward", true);
+      xhttp.open("GET", "http://192.168.4.1/forward", true);
       xhttp.send();
   }
   function backward()
@@ -107,7 +107,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       if (this.readyState == 4 && this.status == 200) {
       }
       };
-      xhttp.open("GET", "/backward", true);
+      xhttp.open("GET", "http://192.168.4.1/backward", true);
       xhttp.send();
   }
   function left()
@@ -117,7 +117,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       if (this.readyState == 4 && this.status == 200) {
       }
       };
-      xhttp.open("GET", "/turn-left", true);
+      xhttp.open("GET", "http://192.168.4.1/turn-left", true);
       xhttp.send();
   }
   function right()
@@ -127,7 +127,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       if (this.readyState == 4 && this.status == 200) {
       }
       };
-      xhttp.open("GET", "/turn-right", true);
+      xhttp.open("GET", "http://192.168.4.1/turn-right", true);
       xhttp.send();
   }
   function stop()
@@ -137,7 +137,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       if (this.readyState == 4 && this.status == 200) {
       }
       };
-      xhttp.open("GET", "/stop", true);
+      xhttp.open("GET", "http://192.168.4.1/stop", true);
       xhttp.send();
   }
   </script>
@@ -202,7 +202,11 @@ void setup() {
   input.reserve(20);
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send_P(200, "text/html", index_html);
+    request->send_P(200, "text/plain", "Hello!");
+    });
+
+  server.on("/remote", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/html", remote_html);
     });
 
    server.on("/forward", HTTP_GET, [](AsyncWebServerRequest * request) {
@@ -230,14 +234,34 @@ void setup() {
     request->send(200);
     });
 
-    server.on("/speed", HTTP_GET, [](AsyncWebServerRequest * request) {
-    input = "";
-    input.concat("[");
-    input.concat(request->getParam(0)->value());
-    input.concat("]");
-    Serial.println(input);
-    request->send(200);
+    server.on("/cw", HTTP_GET, [](AsyncWebServerRequest * request) {
+     input = "";
+     input.concat("[");
+     input.concat("cw,");
+     input.concat(request->getParam(0)->value());
+     input.concat("]");
+     Serial.println(input);
+     request->send(200);
     });
+
+    server.on("/ccw", HTTP_GET, [](AsyncWebServerRequest * request) {
+     input = "";
+     input.concat("[");
+     input.concat("ccw,");
+     input.concat(request->getParam(0)->value());
+     input.concat("]");
+     Serial.println(input);
+     request->send(200);
+    });
+
+    // server.on("/speed", HTTP_GET, [](AsyncWebServerRequest * request) {
+    // input = "";
+    // input.concat("[");
+    // input.concat(request->getParam(0)->value());
+    // input.concat("]");
+    // Serial.println(input);
+    // request->send(200);
+    // });
 
     server.on("/get-data", HTTP_GET, [](AsyncWebServerRequest * request) {
     request->send_P(200, "text/plain", data_buffer.c_str());
@@ -248,7 +272,7 @@ void setup() {
 
 void loop() {
   statusLed.Update();
-  if(millis() - last_millis >= 1500)
+  if(millis() - last_millis >= 3000)
   {
     Serial.println("+read;");
     last_millis = millis();
