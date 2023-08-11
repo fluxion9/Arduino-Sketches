@@ -1,56 +1,48 @@
 #include <Servo.h>
-#include <TinyGPSPlus.h>
-#include <SoftwareSerial.h>
 #include <Wire.h>
 #include <QMC5883LCompass.h>
-
-#define GPSRXPin A3
-#define GPSTXPin 9
-
-#define GPSBaud 4800
 
 #define topThresh 4.0
 #define frontThresh 60.0
 
 #define openPos 90
-#define closePos 6
+#define closePos 0
 
 #define m0f 11
 #define m0r 10
 #define m1f 12
 #define m1r 13
 
-#define trig0 A1
-#define trig1 7
-#define echo0 A0
-#define echo1 8
+#define trig0 7
+#define trig1 A0
+#define echo0 8
+#define echo1 A1
 
 #define closed 0
 #define opened 1
 
-#define servomotor 3
+#define servomotor 9
 
 #define cs 0.0332 // cm/uS
 
 Servo servo;
-TinyGPSPlus gpsr;
-SoftwareSerial gps(GPSRXPin, GPSTXPin);
 QMC5883LCompass compass;
 
 String Buffer = "", data = "", mem = "";
 String ltd = "", lgd = "";
+float dist = 0.0;
 
 struct ATC
 {
   enum states {bin_full = 200};
   enum motions {idle, stopped, Forward, Backward, turnleft, turnright};
-  bool binState = closed, locked = false, gpsStat = false;
-  int status = idle, azimuthal = 0, bearing = 0, comp_x, comp_y, comp_z;
+  bool binState = closed, Locked = false, gpsStat = false;
+  int Status = idle, azimuthal = 0;
 
   void init(void)
   {
     Serial.begin(9600);
-    gps.begin(GPSBaud);
+    Wire.begin();
     compass.init();
     pinMode(m0f, OUTPUT);
     pinMode(m0r, OUTPUT);
@@ -58,31 +50,43 @@ struct ATC
     pinMode(m1r, OUTPUT);
     stop();
 
+    pinMode(trig0, 1);
+    pinMode(echo0, 0);
+    pinMode(trig1, 1);
+    pinMode(echo1, 0);
+
+    digitalWrite(trig0, 0);
+    digitalWrite(trig1, 0);
+    
+    delay(1500);
+
     servo.attach(servomotor);
     servo.write(closePos);
 
     Buffer.reserve(100);
     data.reserve(100);
     mem.reserve(100);
-    ltd.reserve(10);
-    lgd.reserve(10);
+    ltd.reserve(15);
+    lgd.reserve(15);
   }
 
   int checkBin(void)
   {
-    float distance = measureDistance(trig0, echo0);
-    if (distance <= topThresh)
-    {
-      return bin_full;
-    }
-    else {
-      return 0 - bin_full;
-    }
+    // float distance = measureDistance(trig0, echo0);
+    // if (distance <= topThresh)
+    // {
+    //   return bin_full;
+    // }
+    // else {
+    //   return 0 - bin_full;
+    // }
+    return 0 - bin_full;
   }
 
   bool checkPresence(void)
   {
     float distance = measureDistance(trig1, echo1);
+    dist = distance;
     if (distance <= frontThresh)
     {
       return true;
@@ -96,9 +100,6 @@ struct ATC
   {
     unsigned long t;
     float d;
-    pinMode(trig, 1);
-    pinMode(echo, 0);
-
     digitalWrite(trig, 0);
     digitalWrite(trig, 1);
     delayMicroseconds(10);
@@ -111,47 +112,45 @@ struct ATC
 
   void readGPS()
   {
-    unsigned long Time = millis(), timeout = 1500;
-    while (true)
+    data = "";
+    Wire.requestFrom(35, 25);
+    while (Wire.available())
     {
-      while (gps.available() > 0)
+      char d = Wire.read();
+      data += d;
+    }
+    if (data.length() > 1)
+    {
+      data = data.substring(0, data.indexOf(';'));
+      if (isListData(&data))
       {
-        if (gpsr.encode(gps.read()))
+        data = data.substring(data.indexOf('[') + 1, data.indexOf(']'));
+        ltd = readStrList(&mem, data, 1);
+        lgd = readStrList(&mem, data, 2);
+        if (ltd.toFloat() == 0.0 || lgd.toFloat() == 0.0)
         {
-          if (gpsr.location.isValid())
-          {
-            gpsStat = true;
-            ltd = String(gpsr.location.lat(), 6);
-            lgd = String(gpsr.location.lng(), 6);
-          }
-          else {
-            gpsStat = false;
-          }
+          gpsStat = 0;
+        }
+        else {
+          gpsStat = 1;
         }
       }
-      if (millis() - Time >= timeout)
-      {
-        return;
-      }
     }
+    data = "";
   }
 
   int readCompass()
   {
     compass.read();
     azimuthal = compass.getAzimuth();
-    bearing = compass.getBearing(azimuthal);
-    comp_x = compass.getX();
-    comp_y = compass.getY();
-    comp_z = compass.getZ();
     return azimuthal;
   }
 
   void openBin()
   {
-    if(binState == closed)
+    if (binState == closed)
     {
-      for(int i = servo.read(); i <= openPos; i++)
+      for (int i = servo.read(); i <= openPos; i++)
       {
         servo.write(i);
         delay(15);
@@ -162,9 +161,9 @@ struct ATC
 
   void closeBin()
   {
-    if(binState == opened)
+    if (binState == opened)
     {
-      for(int i = servo.read(); i >= closePos; i--)
+      for (int i = servo.read(); i >= closePos; i--)
       {
         servo.write(i);
         delay(15);
@@ -178,7 +177,7 @@ struct ATC
     stop();
     digitalWrite(m0f, 1);
     digitalWrite(m1f, 1);
-    status = Forward;
+    Status = Forward;
   }
 
   void backward()
@@ -186,7 +185,7 @@ struct ATC
     stop();
     digitalWrite(m0r, 1);
     digitalWrite(m1r, 1);
-    status = Backward;
+    Status = Backward;
   }
 
   void turnRight()
@@ -194,7 +193,7 @@ struct ATC
     stop();
     digitalWrite(m0f, 1);
     digitalWrite(m1r, 1);
-    status = turnright;
+    Status = turnright;
   }
 
   void turnLeft()
@@ -202,7 +201,7 @@ struct ATC
     stop();
     digitalWrite(m1f, 1);
     digitalWrite(m0r, 1);
-    status = turnleft;
+    Status = turnleft;
   }
 
   void stop()
@@ -211,14 +210,14 @@ struct ATC
     digitalWrite(m0r, 0);
     digitalWrite(m1f, 0);
     digitalWrite(m1r, 0);
-    status = stopped;
+    Status = stopped;
   }
 
   void turnCW(int angle)
   {
     int initAngle = readCompass();
     turnRight();
-    while(abs(readCompass() - initAngle) < angle);
+    while (abs(readCompass() - initAngle) < angle);
     stop();
   }
 
@@ -226,36 +225,30 @@ struct ATC
   {
     int initAngle = readCompass();
     turnLeft();
-    while(abs(readCompass() - initAngle) < angle);
+    while (abs(readCompass() - initAngle) < angle);
     stop();
   }
 
-  void react()
-  {
-
-  }
+  //  void react()
+  //  {
+  //
+  //  }
 
   void load_buffer(void)
   {
     Buffer = "";
     Buffer.concat("{\"stat\":");
-    Buffer.concat(status);
-    Buffer.concat("\"gStat\":");
+    Buffer.concat(Status);
+    Buffer.concat(",\"gStat\":");
     Buffer.concat(gpsStat);
     Buffer.concat(",\"lat\":");
     Buffer.concat(ltd);
     Buffer.concat(",\"lng\":");
     Buffer.concat(lgd);
+    Buffer.concat(",\"dist\":");
+    Buffer.concat(dist);
     Buffer.concat(",\"azm\":");
     Buffer.concat(azimuthal);
-    Buffer.concat(",\"brg\":");
-    Buffer.concat(bearing);
-    Buffer.concat(",\"cx\":");
-    Buffer.concat(comp_x);
-    Buffer.concat(",\"cy\":");
-    Buffer.concat(comp_y);
-    Buffer.concat(",\"cz\":");
-    Buffer.concat(comp_z);
     Buffer.concat("}");
   }
 
@@ -299,29 +292,31 @@ struct ATC
 
   void run()
   {
-    readCompass();
-    while (Serial.available() > 0)
+    if (Serial.available())
     {
-      delay(3);
-      char c = Serial.read();
-      data += c;
+      while (Serial.available() > 0)
+      {
+        delay(3);
+        char c = Serial.read();
+        data += c;
+      }
     }
     if (data.length() > 0)
     {
       data.trim();
       if (isListData(&data))
       {
-        data = data.substring(data.indexOf('[')+1, data.indexOf(']'));
+        data = data.substring(data.indexOf('[') + 1, data.indexOf(']'));
         String command = readStrList(&mem, data, 1);
-        if(command == "cw")
+        if (command == "cw")
         {
           int val = readStrList(&mem, data, 2).toInt();
-          turnCW(val);
+//          turnCW(val);
         }
-        if(command == "ccw")
+        if (command == "ccw")
         {
           int val = readStrList(&mem, data, 2).toInt();
-          turnCCW(val);
+//          turnCCW(val);
         }
       }
       else if (data == "+fwd")
@@ -351,8 +346,32 @@ struct ATC
       }
       data = "";
     }
+    if (!Locked && checkPresence())
+    {
+      openBin();
+      wait(5);
+      closeBin();
+      if (checkBin() == bin_full)
+      {
+        Locked = true;
+      }
+      else {
+        Locked = false;
+      }
+    }
+    else {
+      if (checkBin() == bin_full)
+      {
+        Locked = true;
+      }
+      else {
+        Locked = false;
+      }
+    }
+    readCompass();
+    readGPS();
   }
-}atc;
+} atc;
 
 void setup()
 {

@@ -210,27 +210,27 @@ void setup() {
     });
 
    server.on("/forward", HTTP_GET, [](AsyncWebServerRequest * request) {
-    Serial.println("+fwd");
+    Serial.println("+fwd;");
     request->send(200);
     });
 
     server.on("/backward", HTTP_GET, [](AsyncWebServerRequest * request) {
-    Serial.println("+bwd");
+    Serial.println("+bwd;");
     request->send(200);
     });
 
     server.on("/turn-right", HTTP_GET, [](AsyncWebServerRequest * request) {
-    Serial.println("+tr");
+    Serial.println("+tr;");
     request->send(200);
     });
 
     server.on("/turn-left", HTTP_GET, [](AsyncWebServerRequest * request) {
-    Serial.println("+tl");
+    Serial.println("+t;l");
     request->send(200);
     });
 
     server.on("/stop", HTTP_GET, [](AsyncWebServerRequest * request) {
-    Serial.println("+stop");
+    Serial.println("+stop;");
     request->send(200);
     });
 
@@ -239,7 +239,7 @@ void setup() {
      input.concat("[");
      input.concat("cw,");
      input.concat(request->getParam(0)->value());
-     input.concat("]");
+     input.concat("];");
      Serial.println(input);
      request->send(200);
     });
@@ -249,7 +249,7 @@ void setup() {
      input.concat("[");
      input.concat("ccw,");
      input.concat(request->getParam(0)->value());
-     input.concat("]");
+     input.concat("];");
      Serial.println(input);
      request->send(200);
     });
