@@ -1,17 +1,16 @@
-#include <LiquidCrystal.h>
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+  
+LiquidCrystal_I2C lcd(0x27, 16, 2); 
 
-const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+#define trig0 10 // trig pin of first ultrasonic sensor connects to pin 10 of Arduino
+#define echo0 11 // echo pin of first ultrasonic sensor connects to pin 11 of Arduino
+#define trig1 13 // trig pin of second ultrasonic sensor connects to pin 13 of Arduino
+#define echo1 12 // echo pin of second ultrasonic sensor connects to pin 13 of Arduino
+#define rst 4 // A reset button connected to Arduino pin 4 is used to reset the count recorded 
 
-#define trig0 10
-#define echo0 11
-#define trig1 13
-#define echo1 12
-
-#define rst 4
-
-#define buzz 8
-#define led 7
+#define buzz 8 // A buzzer connected to Arduino pin 8 
+#define led 7 // An LED connected to Arduino pin 7
 
 struct attC
 {
@@ -23,6 +22,8 @@ struct attC
 
   void Init( void )
   {
+    lcd.init(); 
+    lcd.backlight();
     pinMode( rst, 0 );
     pinMode( buzz, 1);
     pinMode( led, 1);
@@ -38,7 +39,6 @@ struct attC
     
     noTone( buzz );
     count = 0;
-    lcd.begin( 16, 2 );
     lcd.clear();
     lcd.setCursor( 3, 1 );
     lcd.print( "ATTENDANCE" );
