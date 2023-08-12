@@ -1,10 +1,11 @@
-#include <WiFi.h>
+// {"v1":14.5,"v2":15.0,"v3":16.0,"ps":1,"bs":0}
+#include <ESP8266WiFi.h>
 #include <Arduino.h>
-#include <AsyncTCP.h>
+#include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-const char* ssid = "Robot Vacuum";
-const char* password = "";
+const char* ssid     = "RoboTrash";
+const char* password = "RTS-2023";
 
 AsyncWebServer server(80);
 
@@ -191,7 +192,7 @@ void setup() {
   Serial.begin(9600);
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.print("Setting AP (Access Point)…");
-  WiFi.softAP(ssid); // no password
+  WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
   // Serial.print("AP IP address: ");
   // Serial.println(IP);
