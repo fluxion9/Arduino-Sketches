@@ -30,7 +30,7 @@ QMC5883LCompass compass;
 
 enum states {bin_full = 200};
 
-enum motions {idle, stopped, Forward, Backward, turnleft, turnright};
+enum motions {idle, Forward, Backward, turnleft, turnright};
 
 bool binState = closed, Locked = false, gpsStat = false;
 
@@ -219,11 +219,11 @@ struct ATC
       }
       else if (data == "+tr")
       {
-        turnRight();
+        turnCW(45);
       }
       else if (data == "+tl")
       {
-        turnLeft();
+        turnCCW(45);
       }
       else if (data == "+stop")
       {
@@ -276,7 +276,7 @@ struct ATC
     digitalWrite(m0r, 0);
     digitalWrite(m1f, 0);
     digitalWrite(m1r, 0);
-    Status = stopped;
+    Status = idle;
   }
 
   void turnCW(int angle)
@@ -329,6 +329,13 @@ struct ATC
     }
   }
 
+  void readBattery()
+  {
+
+  }
+
+  
+
   String readStrList(String* memory, String strList, byte position)
   {
     byte index = 0;
@@ -356,7 +363,7 @@ struct ATC
     readCompass();
     readGPS();
     checkSerial();
-    if (!Locked && checkPresence())
+    if (status == idle && !Locked && checkPresence())
     {
       openBin();
       wait(5);
