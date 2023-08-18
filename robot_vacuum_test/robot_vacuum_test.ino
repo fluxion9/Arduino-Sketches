@@ -1,66 +1,47 @@
-#define trig0 7
-#define trig1 3
-#define trig2 5
-#define trig3 22
+#include <TinyGPSPlus.h>
 
-#define echo0 6
-#define echo1 2
-#define echo2 4
-#define echo3 12
+TinyGPSPlus gps;
+
+#define trig0 13
+#define trig1 23
+#define trig2 49
+#define trig3 24
+
+#define echo0 12
+#define echo1 22
+#define echo2 48
+#define echo3 25
 
 #define motor0_F 8
 #define motor0_R 9
 #define motor1_F 10
 #define motor1_R 11
 
+#define obsThresh 6.0
+
 #define cs 0.0332
 
 String Buffer = "", data = "", mem = "";
+
+bool temp = false;
+
+double latitude = 0.0, longitude = 0.0;
 
 byte trigs[4] = {trig0, trig1, trig2, trig3};
 byte echos[4] = {echo0, echo1, echo2, echo3};
 
 float distances[4] = {0.0, 0.0, 0.0, 0.0};
 
-class Blinker
+enum motions
 {
-    int ledPin;
-    long onTime;
-    long offTime;
-
-    int ledState;
-    unsigned long previousMillis;
-    unsigned long currentMillis;
-  public:
-    Blinker(int pin, long on, long off)
-    {
-      ledPin = pin;
-      pinMode(ledPin, OUTPUT);
-
-      onTime = on;
-      offTime = off;
-      ledState = LOW;
-      previousMillis = 0;
-    }
-    void Update()
-    {
-      currentMillis = millis();
-      if ((ledState == HIGH) && (currentMillis - previousMillis >= onTime))
-      {
-        ledState = LOW;
-        previousMillis = currentMillis;
-        digitalWrite(ledPin, ledState);
-      }
-      else if ((ledState == LOW) && (currentMillis - previousMillis >= offTime))
-      {
-        ledState = HIGH;
-        previousMillis = currentMillis;
-        digitalWrite(ledPin, ledState);
-      }
-    }
+  idle,
+  Forward,
+  Backward,
+  turnleft,
+  turnright
 };
 
-Blinker blynk(13, 300, 5000);
+int Status = idle;
 
 long speed = 128;
 
@@ -68,11 +49,12 @@ struct RBV
 {
   void init(void)
   {
-    Serial1.begin(9600);
+    Serial3.begin(9600);
+    Serial.begin(9600);
     Buffer.reserve(94);
     data.reserve(32);
     mem.reserve(20);
-    
+
     pinMode(motor0_F, 1);
     pinMode(motor0_R, 1);
     pinMode(motor1_F, 1);
@@ -93,18 +75,19 @@ struct RBV
     return cs * t;
   }
 
-  bool isListData(String* data)
+  bool isListData(String *data)
   {
     if (data->startsWith("[") && data->endsWith("]"))
     {
       return true;
     }
-    else {
+    else
+    {
       return false;
     }
   }
 
-  String readStrList(String* memory, String strList, byte position)
+  String readStrList(String *memory, String strList, byte position)
   {
     byte index = 0;
     *memory = "";
@@ -126,16 +109,49 @@ struct RBV
     return *memory;
   }
 
+  void checkObstacle()
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      distances[i] = measureDistance(trigs[i], echos[i]);
+    }
+  }
+
+  void readGPS()
+  {
+    while (Serial3.available() > 0)
+    {
+      gps.encode(Serial3.read());
+      if (gps.location.isUpdated())
+      {
+        getData();
+      }
+      else
+      {
+        if (!temp)
+        {
+          getData();
+          temp = true;
+        }
+      }
+    }
+  }
+
+  void getData()
+  {
+    latitude = gps.location.lat();
+    longitude = gps.location.lng();
+  }
+
   void run(void)
   {
-    for(int i = 0; i < 4; i++) 
-    {
-        distances[i] = measureDistance(trigs[i], echos[i]);
-    }
-    while (Serial1.available() > 0)
+    checkObstacle();
+    readGPS();
+    react();
+    while (Serial.available() > 0)
     {
       delay(3);
-      char c = Serial1.read();
+      char c = Serial.read();
       data += c;
     }
     if (data.length() > 0)
@@ -143,37 +159,33 @@ struct RBV
       data.trim();
       if (isListData(&data))
       {
-        data = data.substring(data.indexOf('[')+1, data.indexOf(']'));
+        data = data.substring(data.indexOf('[') + 1, data.indexOf(']'));
         speed = readStrList(&mem, data, 1).toInt();
       }
-      else if (data == "+fwd")
+      else if (data == "+fwd;")
       {
-        stop();
         forward();
       }
-      else if (data == "+bwd")
+      else if (data == "+bwd;")
       {
-        stop();
         backward();
       }
-      else if (data == "+tr")
+      else if (data == "+tr;")
       {
-        stop();
         turnRight();
       }
-      else if (data == "+tl")
+      else if (data == "+tl;")
       {
-        stop();
         turnLeft();
       }
-      else if (data == "+stop")
+      else if (data == "+stop;")
       {
         stop();
       }
       else if (data == "+read;")
       {
         load_buffer();
-        Serial1.println(Buffer);
+        Serial.println(Buffer);
       }
       data = "";
     }
@@ -181,26 +193,63 @@ struct RBV
 
   void forward()
   {
-    analogWrite(motor0_F, speed);
-    analogWrite(motor1_F, speed);
+    checkObstacle();
+    if (distances[0] < obsThresh)
+    {
+      stop();
+    }
+    else
+    {
+      stop();
+      analogWrite(motor0_F, speed);
+      analogWrite(motor1_F, speed);
+      Status = Forward;
+    }
+  }
+
+  void react()
+  {
+    checkObstacle();
+    if (Status == Forward && distances[0] < obsThresh)
+    {
+      stop();
+    }
+    else if (Status == Backward && distances[1] < obsThresh)
+    {
+      stop();
+    }
   }
 
   void backward()
   {
-    analogWrite(motor0_R, speed);
-    analogWrite(motor1_R, speed);
+    checkObstacle();
+    if (distances[1] < obsThresh)
+    {
+      stop();
+    }
+    else
+    {
+      stop();
+      analogWrite(motor0_R, speed);
+      analogWrite(motor1_R, speed);
+      Status = Backward;
+    }
   }
 
   void turnRight()
   {
+    stop();
     analogWrite(motor0_F, speed);
     analogWrite(motor1_R, speed);
+    Status = turnright;
   }
 
   void turnLeft()
   {
+    stop();
     analogWrite(motor1_F, speed);
     analogWrite(motor0_R, speed);
+    Status = turnleft;
   }
 
   void stop()
@@ -209,6 +258,7 @@ struct RBV
     analogWrite(motor0_R, 0);
     analogWrite(motor1_F, 0);
     analogWrite(motor1_R, 0);
+    Status = idle;
   }
 
   void load_buffer(void)
@@ -224,16 +274,23 @@ struct RBV
     Buffer.concat(distances[3]);
     Buffer.concat(",\"speed\":");
     Buffer.concat(speed);
+    Buffer.concat(",\"lng\":");
+    Buffer.concat(longitude);
+    Buffer.concat(",\"lat\":");
+    Buffer.concat(latitude);
+    Buffer.concat(",\"stat\":");
+    Buffer.concat(Status);
     Buffer.concat("}");
   }
 
-}rbv;
+} rbv;
 
-void setup() {
+void setup()
+{
   rbv.init();
 }
 
-void loop() {
+void loop()
+{
   rbv.run();
-  blynk.Update();
 }
