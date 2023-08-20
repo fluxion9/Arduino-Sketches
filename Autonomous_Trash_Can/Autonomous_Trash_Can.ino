@@ -50,7 +50,7 @@ int Status = idle, azimuthal = 0;
 
 unsigned long lastSendTime = 0;
 
-float dist = 0.0, battery = 0.0;
+float dist = 0.0, top = 0.0, battery = 0.0;
 
 String data = "", Buffer = "";
 String ltd = "", lgd = "", mem = "";
@@ -93,15 +93,15 @@ struct ATC
 
   int checkBin(void)
   {
-    // float distance = measureDistance(trig0, echo0);
-    // if (distance <= topThresh)
-    // {
-    //   return bin_full;
-    // }
-    // else {
-    //   return 0 - bin_full;
-    // }
-    return 0 - bin_full;
+    float distance = measureDistance(trig0, echo0);
+    top = distance;
+    if (distance > 0 && distance <= topThresh)
+    {
+      return bin_full;
+    }
+    else {
+      return 0 - bin_full;
+    }
   }
 
   bool checkPresence(void)
@@ -255,9 +255,16 @@ struct ATC
       {
         stop();
       }
-      else if (data == "+unlock")
+      else if (data == "opcl")
       {
-        Locked = false;
+        if(binState == closed)
+        {
+          openBin();
+        }
+        else if(binState == opened)
+        {
+          closeBin();
+        }
       }
       data = "";
     }
@@ -326,14 +333,18 @@ struct ATC
     Buffer = "";
     Buffer.concat("{\"stat\":");
     Buffer.concat(Status);
-    Buffer.concat(",\"gStat\":");
+    Buffer.concat(",\"gstat\":");
     Buffer.concat(gpsStat);
+    Buffer.concat(",\"bstat\":");
+    Buffer.concat(checkBin() == bin_full ? 1 : 0);
     Buffer.concat(",\"lat\":");
     Buffer.concat(ltd);
     Buffer.concat(",\"lng\":");
     Buffer.concat(lgd);
     Buffer.concat(",\"dist\":");
     Buffer.concat(dist);
+    Buffer.concat(",\"top\":");
+    Buffer.concat(top);
     Buffer.concat(",\"azm\":");
     Buffer.concat(azimuthal);
     Buffer.concat(",\"batt\":");
@@ -357,7 +368,7 @@ struct ATC
   {
     float value = analogRead(pin);
     value = (value * 5.0) / 1023.0;
-    value = value * vdr
+    value = value * vdr;
   }
 
   float readBattery()
@@ -400,7 +411,7 @@ struct ATC
     readGPS();
     checkSerial();
     sendData();
-    if (status == idle && !Locked && checkPresence())
+    if (Status == idle && !Locked && checkPresence())
     {
       openBin();
       wait(5);
