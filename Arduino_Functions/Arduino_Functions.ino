@@ -175,7 +175,7 @@ float fmap(float val, float fromLow, float fromHigh, float toLow, float toHigh)
 //  buf->concat("}");
 //}
 
-float measureVoltageDC(byte pin, int vdr)
+float measureVoltageDC(byte pin, float vdr)
 {
   float value = analogRead(pin);
   value = (value * 5.0) / 1023.0;

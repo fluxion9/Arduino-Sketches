@@ -234,6 +234,11 @@ void setup() {
     request->send(200);
     });
 
+    server.on("/unlock", HTTP_GET, [](AsyncWebServerRequest * request) {
+    Serial.println("+unlock;");
+    request->send(200);
+    });
+
     server.on("/cw", HTTP_GET, [](AsyncWebServerRequest * request) {
      input = "";
      input.concat("[");

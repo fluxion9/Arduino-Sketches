@@ -8,6 +8,8 @@
 #define openPos 90
 #define closePos 0
 
+#define vBatt A3
+
 #define trig0 7
 #define trig1 A1
 #define echo0 8
@@ -28,15 +30,27 @@
 Servo servo;
 QMC5883LCompass compass;
 
-enum states {bin_full = 200};
+enum states
+{
+  bin_full = 200
+};
 
-enum motions {idle, Forward, Backward, turnleft, turnright};
+enum motions
+{
+  idle,
+  Forward,
+  Backward,
+  turnleft,
+  turnright
+};
 
 bool binState = closed, Locked = false, gpsStat = false;
 
 int Status = idle, azimuthal = 0;
 
-float dist = 0.0;
+unsigned long lastSendTime = 0;
+
+float dist = 0.0, battery = 0.0;
 
 String data = "", Buffer = "";
 String ltd = "", lgd = "", mem = "";
@@ -98,7 +112,8 @@ struct ATC
     {
       return true;
     }
-    else {
+    else
+    {
       return false;
     }
   }
@@ -127,7 +142,8 @@ struct ATC
         delay(15);
       }
       binState = opened;
-      while (checkPresence());
+      while (checkPresence())
+        ;
     }
   }
 
@@ -170,12 +186,22 @@ struct ATC
         {
           gpsStat = 0;
         }
-        else {
+        else
+        {
           gpsStat = 1;
         }
       }
     }
     data = "";
+  }
+  void sendData()
+  {
+    if (millis() - lastSendTime > 1500)
+    {
+      load_buffer();
+      Serial.println(Buffer);
+      lastSendTime = millis();
+    }
   }
 
   int readCompass()
@@ -229,10 +255,9 @@ struct ATC
       {
         stop();
       }
-      else if (data == "+read")
+      else if (data == "+unlock")
       {
-        load_buffer();
-        Serial.println(Buffer);
+        Locked = false;
       }
       data = "";
     }
@@ -291,14 +316,10 @@ struct ATC
   {
     int initAngle = readCompass();
     turnLeft();
-    while (abs(readCompass() - initAngle) < angle);
+    while (abs(readCompass() - initAngle) < angle)
+      ;
     stop();
   }
-
-  //  void react()
-  //  {
-  //
-  //  }
 
   void load_buffer(void)
   {
@@ -315,28 +336,37 @@ struct ATC
     Buffer.concat(dist);
     Buffer.concat(",\"azm\":");
     Buffer.concat(azimuthal);
+    Buffer.concat(",\"batt\":");
+    Buffer.concat(battery);
     Buffer.concat("}");
   }
 
-  bool isListData(String* data)
+  bool isListData(String *data)
   {
     if (data->startsWith("[") && data->endsWith("]"))
     {
       return true;
     }
-    else {
+    else
+    {
       return false;
     }
   }
 
-  void readBattery()
+  float measureVoltageDC(byte pin, float vdr)
   {
-
+    float value = analogRead(pin);
+    value = (value * 5.0) / 1023.0;
+    value = value * vdr
   }
 
-  
+  float readBattery()
+  {
+    battery = measureVoltageDC(vBatt, 11.0);
+    return battery;
+  }
 
-  String readStrList(String* memory, String strList, byte position)
+  String readStrList(String *memory, String strList, byte position)
   {
     byte index = 0;
     *memory = "";
@@ -358,11 +388,18 @@ struct ATC
     return *memory;
   }
 
+  void journeyTo(String coordx, String coordy)
+  {
+
+  }
+
   void run()
   {
+    readBattery();
     readCompass();
     readGPS();
     checkSerial();
+    sendData();
     if (status == idle && !Locked && checkPresence())
     {
       openBin();
@@ -372,16 +409,19 @@ struct ATC
       {
         Locked = true;
       }
-      else {
+      else
+      {
         Locked = false;
       }
     }
-    else {
+    else
+    {
       if (checkBin() == bin_full)
       {
         Locked = true;
       }
-      else {
+      else
+      {
         Locked = false;
       }
     }
@@ -390,10 +430,12 @@ struct ATC
 
 ATC atc;
 
-void setup() {
+void setup()
+{
   atc.init();
 }
 
-void loop() {
+void loop()
+{
   atc.run();
 }
