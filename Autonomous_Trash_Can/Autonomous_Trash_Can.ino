@@ -1,9 +1,10 @@
 #include <Servo.h>
 #include <Wire.h>
 #include <QMC5883LCompass.h>
+#include <avr/wdt.h>
 
 #define topThresh 4.0
-#define frontThresh 60.0
+#define frontThresh 30.0
 
 #define openPos 90
 #define closePos 0
@@ -89,6 +90,7 @@ struct ATC
 
     ltd.reserve(15);
     lgd.reserve(15);
+    wdt_enable(WDTO_8S);
   }
 
   int checkBin(void)
@@ -143,7 +145,9 @@ struct ATC
       }
       binState = opened;
       while (checkPresence())
+      {
         ;
+      }
     }
   }
 
@@ -215,7 +219,12 @@ struct ATC
   {
     if (Serial.available())
     {
-      data = Serial.readStringUntil(';');
+      while (Serial.available() > 0)
+      {
+        delay(3);
+        char c = Serial.read();
+        data += c;
+      }
     }
     if (data.length() > 0)
     {
@@ -235,39 +244,40 @@ struct ATC
           turnCCW(val);
         }
       }
-      else if (data == "+fwd")
+      else if (data == "+fwd;")
       {
         forward();
       }
-      else if (data == "+bwd")
+      else if (data == "+bwd;")
       {
         backward();
       }
-      else if (data == "+tr")
+      else if (data == "+tr;")
       {
-        turnCW(45);
+        turnRight();
       }
-      else if (data == "+tl")
+      else if (data == "+tl;")
       {
-        turnCCW(45);
+        turnLeft();
       }
-      else if (data == "+stop")
+      else if (data == "+stop;")
       {
         stop();
       }
-      else if (data == "opcl")
+      else if (data == "+opcl;")
       {
-        if(binState == closed)
+        if (binState == closed)
         {
           openBin();
         }
-        else if(binState == opened)
+        else if (binState == opened)
         {
           closeBin();
         }
       }
       data = "";
     }
+    wdt_reset();
   }
 
   void forward()
@@ -366,9 +376,10 @@ struct ATC
 
   float measureVoltageDC(byte pin, float vdr)
   {
-    float value = analogRead(pin);
-    value = (value * 5.0) / 1023.0;
-    value = value * vdr;
+    float Value = analogRead(pin);
+    Value = (Value * 5.0) / 1023.0;
+    Value = Value * vdr;
+    return Value;
   }
 
   float readBattery()
@@ -406,6 +417,7 @@ struct ATC
 
   void run()
   {
+    wdt_reset();
     readBattery();
     readCompass();
     readGPS();

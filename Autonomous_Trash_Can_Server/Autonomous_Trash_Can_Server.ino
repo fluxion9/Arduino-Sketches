@@ -1,11 +1,10 @@
-// {"v1":14.5,"v2":15.0,"v3":16.0,"ps":1,"bs":0}
 #include <ESP8266WiFi.h>
 #include <Arduino.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-const char* ssid     = "RoboTrash";
-const char* password = "RTS-2023";
+const char* ssid = "JohnPaul's RobotTrash";
+const char* password = "JPRTS-2023";
 
 AsyncWebServer server(80);
 
@@ -15,6 +14,13 @@ const char remote_html[] PROGMEM = R"rawliteral(
 <head>
   <title>Remote Control</title>
   <style>
+
+  button {
+    user-select: none;
+    -webkit-user-select: none; /* For Safari */
+    -moz-user-select: none; /* For Firefox */
+    -ms-user-select: none; /* For Internet Explorer */
+    }
     /* Fullscreen layout */
     html, body {
       height: 100%;
@@ -78,15 +84,15 @@ const char remote_html[] PROGMEM = R"rawliteral(
 <body>
   <div class="remote-control">
     <div class="button-container">
-      <button class="forward" onclick="forward()">Forward</button>
+      <button class="forward" onmousedown="forward()" onmouseup="stop()" ontouchstart="forward()" ontouchend="stop()">Forward</button>
     </div>
     <div class="button-container">
-      <button class="left" onclick="left()">Left</button>
+      <button class="left" onmousedown="left()" onmouseup="stop()" ontouchstart="left()" ontouchend="stop()">Left</button>
       <button class="stop" onclick="stop()">Stop</button>
-      <button class="right" onclick="right()">Right</button>
+      <button class="right" onmousedown="right()" onmouseup="stop()" ontouchstart="right()" ontouchend="stop()">Right</button>
     </div>
     <div class="button-container">
-      <button class="backward" onclick="backward()">Backward</button>
+      <button class="backward" onmousedown="backward()" onmouseup="stop()" ontouchstart="backward()" ontouchend="stop()">Backward</button>
     </div>
   </div>
   <script lang="text/javascript">
@@ -294,15 +300,8 @@ const char path_routing_html[] PROGMEM = R"rawliteral(
         }
 
         function toggleBin() {
-            // Add your logic here to open/close the bin
-            if(lockstat != "Locked")
-            {
-              ;
-            }
-            else {
-              ControlBin();
-              console.log("Toggle Bin button clicked");
-              }
+            ControlBin();
+            console.log("Toggle Bin button clicked");
         }
 
         function getMousePosition(event) {
