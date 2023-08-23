@@ -13,7 +13,7 @@ ACS712  ACS(currentPin, 5.0, 1023, 66);
 
 unsigned long lastReadTime = 0, lastSendTime = 0;
 
-float currentLimit = 10.0;
+float energyLimit = 10.0;
 
 String Buffer = "", data = "", mem = "";
 
@@ -82,16 +82,16 @@ struct IoT_Socket
   {
     measureVoltageAC();
     measureCurrentAC();
-    if (current > currentLimit)
-    {
-      switchOFF();
-    }
     power = voltage * current;
     if (millis() - lastReadTime >= 2000)
     {
       if (state == on)
       {
         energy += (power * 0.00056) / 1000.0;
+        if (energy >= energyLimit)
+        {
+          switchOFF();
+        }
       }
       lastReadTime = millis();
     }
@@ -107,9 +107,9 @@ struct IoT_Socket
     Buffer.concat(",\"powr\":");
     Buffer.concat(power);
     Buffer.concat(",\"enrg\":");
-    Buffer.concat(String(energy, 4));
+    Buffer.concat(String(energy, 5));
     Buffer.concat(",\"limt\":");
-    Buffer.concat(currentLimit);
+    Buffer.concat(String(energyLimit, 5));
     Buffer.concat(",\"ps\":");
     Buffer.concat(state);
     Buffer.concat("}");
@@ -178,14 +178,23 @@ struct IoT_Socket
       {
         data = data.substring(data.indexOf('[') + 1, data.indexOf(']'));
         String command = readStrList(&mem, data, 1);
-        if (command == "iLim")
+        if (command == "eLim")
         {
-          currentLimit = readStrList(&mem, data, 2).toFloat();
+          energy = 0.0;
+          energyLimit = readStrList(&mem, data, 2).toFloat();
         }
       }
       else if (data == "+on-off")
       {
         switchONOFF();
+      }
+      else if (data == "+on")
+      {
+        switchON();
+      }
+      else if (data == "+off")
+      {
+        switchOFF();
       }
       data = "";
     }
@@ -198,11 +207,17 @@ struct IoT_Socket
       digitalWrite(relayPin, 1);
       state = on;
     }
-    else if(state == on)
+    else if (state == on)
     {
       digitalWrite(relayPin, 0);
       state = off;
     }
+  }
+
+  void switchON()
+  {
+    digitalWrite(relayPin, 1);
+    state = on;
   }
 
   void switchOFF()

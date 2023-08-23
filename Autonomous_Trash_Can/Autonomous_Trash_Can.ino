@@ -14,7 +14,7 @@
 #define trig0 7
 #define trig1 A1
 #define echo0 8
-#define echo1 A0
+#define echo1 A0pinMode
 
 #define m0f 11
 #define m0r 10
