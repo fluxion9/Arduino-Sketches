@@ -25,7 +25,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 
 const int pwmPin = 9;
-unsigned int pwmDutyCycle = 0;
+unsigned int pwmDutyCycle = 254;
 
 const unsigned long displayRefreshInterval = 1000;
 
@@ -36,11 +36,12 @@ float outputVoltage = 0.0;
 bool settingVoltage = false;
 String enteredVoltage = "";
 
-float desiredVoltage = 0.0;
+float desiredVoltage = 5.0;
 
 void setup() {
   pinMode(pwmPin, OUTPUT);
   TCCR1B = TCCR1B & B11111000 | B00000001;
+  analogWrite(pwmPin, pwmDutyCycle);
   lcd.init();
   lcd.backlight();
 
@@ -85,6 +86,10 @@ void handleKeypadInput(char key) {
       maxInputVoltage = readMaxInputVoltage();
       if (desiredVoltage <= maxInputVoltage) {
         settingVoltage = false;
+        if(desiredVoltage <= 5.0)
+        {
+          desiredVoltage = 5.0;
+        }
         pwmDutyCycle = map(desiredVoltage, 0, maxInputVoltage, 0, 255);
         analogWrite(pwmPin, pwmDutyCycle);
         enteredVoltage = "";
@@ -95,16 +100,20 @@ void handleKeypadInput(char key) {
         settingVoltage = false;
         enteredVoltage = "";
         pwmDutyCycle = 0;
-        desiredVoltage = 0.0;
+        desiredVoltage = 5.0;
         analogWrite(pwmPin, pwmDutyCycle);
       }
     }
   } else if (key == '*') {
-    enteredVoltage = "";
-    settingVoltage = false;
+    pwmDutyCycle = 254;
+    analogWrite(pwmPin, pwmDutyCycle);
+    enteredVoltage += ".";
   } else if (isdigit(key)) {
+    pwmDutyCycle = 254;
+    analogWrite(pwmPin, pwmDutyCycle);
     settingVoltage = true;
     enteredVoltage += key;
+    
   }
 }
 
@@ -114,16 +123,16 @@ void updateDisplay(int mode) {
     {
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("Desired: ");
+      lcd.print("Vset: ");
       lcd.print(desiredVoltage);
       lcd.setCursor(0, 1);
-      lcd.print("Output: ");
+      lcd.print("Vout: ");
       lcd.print(outputVoltage);
     }
     else if (mode == 1)
     {
       lcd.clear();
-      lcd.print("Voltage Set:");
+      lcd.print("Input:");
       lcd.setCursor(0, 1);
       lcd.print(enteredVoltage);
     }
@@ -136,14 +145,14 @@ void adjustOutput()
   outputVoltage = readOutputVoltage();
   if (outputVoltage < desiredVoltage)
   {
-    pwmDutyCycle++;
-    pwmDutyCycle = constrain(pwmDutyCycle, 0, 255);
+    pwmDutyCycle--;
+    pwmDutyCycle = constrain(pwmDutyCycle, 0, 254);
     analogWrite(pwmPin, pwmDutyCycle);
   }
   else if (outputVoltage > desiredVoltage)
   {
-    pwmDutyCycle--;
-    pwmDutyCycle = constrain(pwmDutyCycle, 0, 255);
+    pwmDutyCycle++;
+    pwmDutyCycle = constrain(pwmDutyCycle, 0, 254);
     analogWrite(pwmPin, pwmDutyCycle);
   }
 }
