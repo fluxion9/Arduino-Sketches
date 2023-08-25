@@ -48,8 +48,8 @@ const char index_html[] PROGMEM = R"rawliteral(
         border-radius: 50%;
         width: 150px;
         height: 150px;
-background: var(--material-theme-white, #FFF);
-box-shadow: -1px 4px 4px 0px rgba(0, 0, 0, 0.25);
+        background: var(--material-theme-white, #FFF);
+        box-shadow: -1px 4px 4px 0px rgba(0, 0, 0, 0.25);
         font-size: 36px;
         display: flex;
         align-items: center;
@@ -210,7 +210,7 @@ box-shadow: -1px 4px 4px 0px rgba(0, 0, 0, 0.25);
 
             <div class="controls">
                 <button class="cont" onclick="changeTemp('-')">-</button>
-                <button class="set-btn" onclick="setTemp()">Set Temperature</button>
+                <button id = "set-btn" class = "set-btn" onclick="setTemp()">Set Temperature</button>
                 <button class="cont" onclick="changeTemp('+')">+</button>
             </div>
         </div>
@@ -225,8 +225,11 @@ box-shadow: -1px 4px 4px 0px rgba(0, 0, 0, 0.25);
 </body>
 <script>
     let isOn = false
-    let realTemp = 25
+    let realTemp = 0
     let temp = realTemp
+    let stemp = 0
+    let state = 0
+    let sbtn = document.getElementById("set-btn")
     const powerBtnInnerEl = document.querySelector(".power-btn-inner")
     const powerBtnTextEl = document.querySelector(".power-btn-text")
     const showTempEl = document.querySelector(".show")
@@ -265,25 +268,31 @@ box-shadow: -1px 4px 4px 0px rgba(0, 0, 0, 0.25);
     }
 
     function changeTemp(type) {
+        if(state == 1)
+        {
+          stemp = temp
+          state = 0
+        }
         if (type === "-") {
-            if (temp === 0) {
+            if (stemp === 0) {
                 return
             }
 
-            temp--
+            stemp--
         } else {
-            if (temp === 100) {
+            if (stemp === 150) {
                 return
             }
-            temp++
+            stemp++
         }
 
         showTempEl.classList.remove("set-temp")
-        showTempEl.innerHTML = `${temp}&deg;C`
+        sbtn.innerHTML = `${stemp}&deg;C`
 
     }
 
     function setTemp() {
+        sbtn.innerHTML = "Change Temperature"
         showTempEl.classList.add("set-temp")
         console.log("set Temp to", temp)
         var xhttp = new XMLHttpRequest();
@@ -291,9 +300,29 @@ box-shadow: -1px 4px 4px 0px rgba(0, 0, 0, 0.25);
             if (this.readyState == 4 && this.status == 200) {
             }
           };
-          xhttp.open("GET", "/set-params/?temp=" + temp, true);
+          xhttp.open("GET", "/set-params/?temp=" + stemp, true);
           xhttp.send();
     }
+
+    function getPayLoad() {
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                let payLoad = JSON.parse(this.responseText);
+                let Temp = payLoad.stemp;
+                if(temp != Temp)
+                {
+                  temp = Temp
+                  showTempEl.innerHTML = `${temp}&deg;C`
+                  state = 1
+                }
+            }
+          };
+          xhttp.open("GET", "/get-data", true);
+          xhttp.send();
+        }
+        getPayLoad();
+        setInterval(getPayLoad, 1500);
 </script>
 </html>
 )rawliteral";
@@ -325,28 +354,28 @@ struct wBath
         input = "";
         input.concat("[");
         input.concat(request->getParam(0)->value());
-        input.concat(",");
-        input.concat(ip);
         input.concat("]");
         Serial.println(input);
         request->send(200);
-    });
+        });
+
+        server.on("/get-data", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send_P(200, "text/plain", data_buffer.c_str()); 
+        });
         
         server.begin();
     }
 
     void run(void)
     {
-      if((millis() - last_millis) >= 2000)
+      if(Serial.available())
       {
-        Serial.println("+read;");
-        last_millis = millis();
-      }
-      while(Serial.available() > 0)
-      {
-        delay(3);
-        char c = Serial.read();
-        ser_buf += c;
+        while(Serial.available() > 0)
+        {
+          delay(3);
+          char c = Serial.read();
+          ser_buf += c;
+        }
       }
       if(ser_buf.length() > 0)
       {
@@ -355,7 +384,6 @@ struct wBath
         ser_buf = "";
       }  
     }
-    
 }wbath;
 
 void setup()
