@@ -285,7 +285,6 @@ struct WaterBath
     {
       stopHeating();
     }
-
     sendData();
     checkSerial();
   }

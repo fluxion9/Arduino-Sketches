@@ -5,11 +5,11 @@
 #include <Servo.h>
 #include "DHT.h"
 
-#define servoPin 9
-#define dhtPin 3
-#define lamp 5
-#define fan 6
-#define dsbPin 7
+#define servoPin 10
+#define dhtPin 13
+#define lamp 9
+#define fan 3
+#define dsbPin 5
 
 #define leftAngle 45
 #define rightAngle 135

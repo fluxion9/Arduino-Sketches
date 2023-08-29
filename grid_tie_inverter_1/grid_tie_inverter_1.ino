@@ -40,10 +40,10 @@ class Blinker
     }
 };
 
-Blinker led(6, 8, 300, 5000);
+Blinker led(6, 8, 300, 3000);
 
 void setup() {
-  TCCR2B = TCCR2B & B11111000 | B00000001;
+  TCCR2B = TCCR2B & B11111000 | B00000010;
   pinMode(3, 1);
   analogWrite(3, 128);
 }
