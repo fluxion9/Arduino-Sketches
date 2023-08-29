@@ -3,7 +3,6 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include "esp_camera.h"
-#include "camera_pins.h"
 
 #include "soc/soc.h"           // Disable brownour problems
 #include "soc/rtc_cntl_reg.h"  // Disable brownour problems

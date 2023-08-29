@@ -136,9 +136,9 @@ struct Incubator
   void load_buffer(void)
   {
     Buffer = "";
-    Buffer.concat("{\"tTemp\":");
+    Buffer.concat("{\"ttemp\":");
     Buffer.concat(trayTemp);
-    Buffer.concat(",\"aTemp\":");
+    Buffer.concat(",\"atemp\":");
     Buffer.concat(airTemp);
     Buffer.concat(",\"humd\":");
     Buffer.concat(humidity);
