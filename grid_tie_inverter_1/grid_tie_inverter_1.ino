@@ -83,7 +83,7 @@ struct GTI
     char text[len + 1];
     for (int i = 0; i < len; i++)
     {
-      text[i] = Buf[i];
+      text[i] = command[i];
     }
     text[len] = '\0';
     radio.write(&text, sizeof(text));
@@ -91,20 +91,20 @@ struct GTI
 
   void load_buffer(void)
   {
-    Buffer = "";
-    Buffer.concat("{\"grid\":");
-    Buffer.concat(voltage);
-    Buffer.concat(",\"ivtr\":");
-    Buffer.concat(current);
-    Buffer.concat(",\"curr\":");
-    Buffer.concat(power);
-    Buffer.concat(",\"powr\":");
-    Buffer.concat(power);
-    Buffer.concat(",\"enrg\":");
-    Buffer.concat(String(energy, 5));
-    Buffer.concat(",\"ps\":");
-    Buffer.concat(isOutputOn);
-    Buffer.concat("}");
+//    Buffer = "";
+//    Buffer.concat("{\"grid\":");
+//    Buffer.concat(voltage);
+//    Buffer.concat(",\"ivtr\":");
+//    Buffer.concat(current);
+//    Buffer.concat(",\"curr\":");
+//    Buffer.concat(power);
+//    Buffer.concat(",\"powr\":");
+//    Buffer.concat(power);
+//    Buffer.concat(",\"enrg\":");
+//    Buffer.concat(String(energy, 5));
+//    Buffer.concat(",\"ps\":");
+//    Buffer.concat(isOutputOn);
+//    Buffer.concat("}");
   }
 
   void sendData()

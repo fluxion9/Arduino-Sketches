@@ -22,7 +22,7 @@ char keys[ROWS][COLS] = {
   {'*', '0', '#'}
 };
 
-byte rowPins[ROWS] = {8, 7, 4, 3};
+byte rowPins[ROWS] = {9, 10, 4, 3};
 byte colPins[COLS] = {2, 12, 13};
 
 
@@ -60,7 +60,6 @@ struct IoT_Socket2
     Buffer.reserve(64);
     mem.reserve(20);
     data.reserve(20);
-
     ACS.autoMidPoint();
   }
 
@@ -89,14 +88,6 @@ struct IoT_Socket2
       switchOFF();
     }
     power = voltage * current;
-    if (millis() - lastReadTime >= 2000)
-    {
-      if (isOutputOn)
-      {
-        energy += (power * 0.00056) / 1000.0;
-      }
-      lastReadTime = millis();
-    }
   }
 
   void switchON()
@@ -259,17 +250,18 @@ struct IoT_Socket2
   {
     Buffer = "";
     Buffer.concat("{\"volt\":");
-    Buffer.concat(voltage);
-    Buffer.concat(",\"curr\":");
     Buffer.concat(current);
+    Buffer.concat(",\"curr\":");
+    Buffer.concat(voltage);
     Buffer.concat(",\"powr\":");
     Buffer.concat(power);
-    Buffer.concat(",\"enrg\":");
-    Buffer.concat(String(energy, 5));
     Buffer.concat(",\"limt\":");
     Buffer.concat(currentLimit);
     Buffer.concat(",\"ps\":");
     Buffer.concat(isOutputOn);
+    Buffer.concat(",\"key\":\"");
+    Buffer.concat(password);
+    Buffer.concat("\"");
     Buffer.concat("}");
   }
 
@@ -336,9 +328,13 @@ struct IoT_Socket2
       {
         data = data.substring(data.indexOf('[') + 1, data.indexOf(']'));
         String command = readStrList(&mem, data, 1);
-        if (command == "iLim")
+        if (command == "ilim=")
         {
           currentLimit = readStrList(&mem, data, 2).toFloat();
+        }
+        else if (command == "key=")
+        {
+          password = readStrList(&mem, data, 2);
         }
       }
       else if (data == "+on-off")
@@ -360,22 +356,9 @@ struct IoT_Socket2
   void run()
   {
     takeReadings();
-    char key = keypad.getKey();
-    if (key != NO_KEY) {
-      if (changingPassword) {
-        displayMode = 2;
-        handlePasswordChange(key);
-      }
-      else if (changingCurrentLimit) {
-        displayMode = 1;
-        handleCurrentLimitSetting(key);
-      } 
-      else {
-        displayMode = 0;
-        handleNormalKeypadInput(key);
-      }
-    }
     display(displayMode);
+    sendData();
+    checkSerial();
   }
 } iot_sock;
 

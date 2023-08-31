@@ -4,7 +4,7 @@
 #include <ESPAsyncWebServer.h>
 
 const char *ssid = "IoT Irrigation";
-const char *password = "IIS-2023";
+const char *password = "I2S-2023";
 
 AsyncWebServer server(80);
 
@@ -150,7 +150,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                 if (this.readyState == 4 && this.status == 200) {
                     let payLoad = JSON.parse(this.responseText);
                     flo.setAttribute('value', payLoad.flo);
-                    vba.setAttribute('value', payLoad.vba);
+                    vba.flosetAttribute('value', payLoad.vba);
                     vol.setAttribute('value', payLoad.vol);
                     lvl.setAttribute('value', payLoad.lvl);
                 }

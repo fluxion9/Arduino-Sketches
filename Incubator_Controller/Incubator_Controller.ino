@@ -75,12 +75,19 @@ struct Incubator
   void init()
   {
     Serial.begin(9600);
+    pinMode(fan, 1);
     sWriter.init();
     dht.begin();
     Buffer.reserve(20);
     data.reserve(32);
     mem.reserve(20);
     moveTo(leftAngle);
+    startFan();
+  }
+
+  void startFan()
+  {
+    analogWrite(fan, 200);
   }
 
   void display()
@@ -99,7 +106,7 @@ struct Incubator
         screenPos = 0;
       }
 
-      if (paramNum > 2)
+      if (paramNum > 3)
       {
         paramNum = 0;
       }
@@ -120,6 +127,10 @@ struct Incubator
       {
         sWriter.write(screenPos, 0, "Humidity: " + String(humidity), 50);
       }
+      else if (paramNum == 3)
+      {
+        sWriter.write(screenPos, 0, "Set Temp: " + String(set_temp), 50);
+      }
       lastDisplay = millis();
     }
   }
@@ -131,6 +142,12 @@ struct Incubator
     trayTemp = fabs(trayTemp);
     airTemp = dht.readTemperature();
     humidity = dht.readHumidity();
+    if(isnan(humidity)) {
+      humidity = 0;
+    }
+    if(isnan(airTemp)) {
+      airTemp = 0;
+    }
   }
 
   void load_buffer(void)
