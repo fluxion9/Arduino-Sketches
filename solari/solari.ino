@@ -24,6 +24,8 @@ String localTime = "";
 unsigned long lastDumpTime = 0;
 bool onStatus = off, lowStat = false;
 
+int second, minute, hour, day;
+
 byte inputs[2] = {Batt, LDR};
 
 
@@ -72,31 +74,21 @@ struct Solari
     }
     delay(1500);
   }
-
-  bool isDark()
-  {
-    if (analogRead(LDR) > 1012)
-    {
-      return 1;
-    }
-    else {
-      return 0;
-    }
-  }
-
   void epochToLocal(unsigned long unixEpoch)
   {
-    long second = unixEpoch % 60;
-    long minute = (unixEpoch / 60) % 60;
-    long hour = (unixEpoch / 3600) % 24;
-    long day = (unixEpoch / 86400) % 365;
+    second = unixEpoch % 60;
+    minute = (unixEpoch / 60) % 60;
+    hour = (unixEpoch / 3600) % 24;
+    day = (unixEpoch / 86400) % 365;
     localTime = "";
-    localTime += String(day) + ':';
-    localTime += String(hour) + ':';
-    localTime += String(minute) + ':';
-    localTime += String(second);
+    localTime.concat(day);
+    localTime.concat(":");
+    localTime.concat(hour);
+    localTime.concat(":");
+    localTime.concat(minute);
+    localTime.concat(":");
+    localTime.concat(second);
   }
-
   float measureVoltage(int pin, float Max)
   {
     float voltage = analogRead(pin);
@@ -135,10 +127,9 @@ struct Solari
     {
     }
   }
-
   void run()
   {
-    if (isDark())
+    if (analogRead(LDR) > 1012)
     {
       onStatus = on;
     }
