@@ -10,6 +10,7 @@ Adafruit_INA219 ina219;
 #define Batt A3
 #define LDR A2
 #define LED 8
+#define blue 9
 
 #define on 1
 #define off 0
@@ -39,15 +40,16 @@ struct Solari
       pinMode(inputs[i], 0);
     }
     pinMode(LED, 1);
+    pinMode(blue, 1);
     dataString.reserve(64);
     while (!SD.begin(chipSelect))
     {
       for (int i = 0; i < 5; i++)
       {
-        digitalWrite(LED, 1);
-        delay(200);
-        digitalWrite(LED, 0);
-        delay(200);
+        digitalWrite(blue, 1);
+        delay(250);
+        digitalWrite(blue, 0);
+        delay(250);
       }
       delay(2000);
     }
@@ -55,10 +57,10 @@ struct Solari
       while (1) {
         for (int i = 0; i < 3; i++)
         {
-          digitalWrite(LED, 1);
-          delay(200);
-          digitalWrite(LED, 0);
-          delay(200);
+          digitalWrite(blue, 1);
+          delay(250);
+          digitalWrite(blue, 0);
+          delay(250);
         }
         delay(2000);
       }
@@ -71,9 +73,22 @@ struct Solari
       dataFile.close();
     }
     else {
+      do {
+        for (int i = 0; i < 5; i++)
+        {
+          digitalWrite(blue, 1);
+          delay(100);
+          digitalWrite(blue, 0);
+          delay(100);
+        }
+        delay(2000);
+        File dataFile = SD.open("datalog.csv", FILE_WRITE);
+      } while (!dataFile);
+      dataFile.println(dataString);
+      dataFile.close();
     }
-    delay(1500);
   }
+
   void epochToLocal(unsigned long unixEpoch)
   {
     second = unixEpoch % 60;
@@ -122,9 +137,23 @@ struct Solari
     {
       dataFile.println(dataString);
       dataFile.close();
+      for (int i = 0; i < 2; i++)
+        {
+          digitalWrite(blue, 1);
+          delay(100);
+          digitalWrite(blue, 0);
+          delay(100);
+        }
     }
     else
     {
+      for (int i = 0; i < 5; i++)
+      {
+        digitalWrite(blue, 1);
+        delay(100);
+        digitalWrite(blue, 0);
+        delay(100);
+      }
     }
   }
   void run()
