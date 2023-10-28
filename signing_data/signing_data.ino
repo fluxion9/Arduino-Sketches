@@ -78,7 +78,7 @@ void byteArrayToHexStr(byte* Array, int arraySize, String* memory)
   }
 }
 
-int signMessage(String msg, byte* signature)
+int signMessageHash(String msg, byte* signature)
 {
   const struct uECC_Curve_t * curve = uECC_secp256k1();
   uint8_t value[HASH_SIZE];
@@ -91,6 +91,9 @@ int signMessage(String msg, byte* signature)
   sha256.reset();
   sha256.update(data, len);
   sha256.finalize(value, sizeof(value));
+  Serial.print("Message Hash: ");
+  byteArrayToHexStr(value, sizeof(value), &printBuf);
+  Serial.println(printBuf);
   int stat = uECC_sign(pvk, value, len, signature, curve);
   return stat;
 }
@@ -116,9 +119,9 @@ void setup() {
 
   Serial.print("Data: ");
   Serial.println(data);
-
+  
+  signMessageHash(data, sig);
   Serial.print("Signature: ");
-  signMessage(data, sig);
   byteArrayToHexStr(sig, sizeof(sig), &printBuf);
   Serial.println(printBuf);
 }
