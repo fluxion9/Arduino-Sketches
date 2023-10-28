@@ -3,7 +3,7 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-#define buzzer 0
+#define buzzer 2
 
 const char *ssid = "mnet.net";
 const char *password = "mnet-2023";
@@ -14,7 +14,7 @@ int error = 0;
 
 AsyncWebServer server(80);
 
-String users_phone_number = "+234...";
+String users_phone_number = "+2349065787011";
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -103,13 +103,15 @@ public:
     }
 };
 
-Blinker statusLed(LED_BUILTIN, 5000, 300);
+Blinker statusLed(0, 5000, 300);
 
 void setup()
 {
+    pinMode(buzzer, 1);
+    digitalWrite(buzzer, 1);
+    pinMode(0, OUTPUT);
     Serial.begin(9600);
     pinMode(buzzer, 1);
-    pinMode(LED_BUILTIN, OUTPUT);
     WiFi.softAP(ssid, password, 1, 0, 8);
     IPAddress IP = WiFi.softAPIP();
 
@@ -134,10 +136,16 @@ void loop()
     sta_num = String(WiFi.softAPgetStationNum());
     if(error > 0)
     {
+      for(int i = 0; i < 3; ++i)
+      {
+        digitalWrite(buzzer, 0);
+        delay(500);
+        digitalWrite(buzzer, 1);
+        delay(500);
+      }
         digitalWrite(buzzer, 1);
         sendSMS(users_phone_number);
         error = 0;
-        digitalWrite(buzzer, 0);
     }
 }
 
