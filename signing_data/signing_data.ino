@@ -14,7 +14,7 @@ String Memo = "";
 
 String printBuf = "";
 
-byte pbk[64], pvk[32], cpbk[33], sig[64];
+byte pbk[64], pvk[32], cpbk[33], sig[128];
 
 bool Registered = false, DEBUG = false;
 
@@ -94,7 +94,13 @@ int signMessageHash(String msg, byte* signature)
   Serial.print("Message Hash: ");
   byteArrayToHexStr(value, sizeof(value), &printBuf);
   Serial.println(printBuf);
-  int stat = uECC_sign(pvk, value, len, signature, curve);
+  int stat = uECC_sign(pvk, value, sizeof(value), signature, curve);
+  Serial.println(stat == 1 ? "Ok":"Error");
+  Serial.print("Signature: ");
+  byteArrayToHexStr(sig, sizeof(sig), &printBuf);
+  Serial.println(printBuf);
+  Serial.println("Verifying Signature...");
+  Serial.println(uECC_verify(pbk, value, sizeof(value), signature, curve) == 1 ? "Verified!":"No match");
   return stat;
 }
 
@@ -113,17 +119,19 @@ void setup() {
   byteArrayToHexStr(pvk, sizeof(pvk), &printBuf);
   Serial.println(printBuf);
 
-  Serial.print("Public Key: ");
+  Serial.print("Public Key (compressed): ");
   byteArrayToHexStr(cpbk, sizeof(cpbk), &printBuf);
+  Serial.println(printBuf);
+
+  Serial.print("Public Key: ");
+  byteArrayToHexStr(pbk, sizeof(pbk), &printBuf);
   Serial.println(printBuf);
 
   Serial.print("Data: ");
   Serial.println(data);
   
   signMessageHash(data, sig);
-  Serial.print("Signature: ");
-  byteArrayToHexStr(sig, sizeof(sig), &printBuf);
-  Serial.println(printBuf);
+  
 }
 
 void loop() {
