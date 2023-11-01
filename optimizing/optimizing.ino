@@ -38,7 +38,7 @@ byte gateway_channel = 0x1D;
 
 uint8_t addr_buffer[3] = {0xFF, 0xFF, gateway_channel};
 
-//EnergyMonitor CTsense;
+EnergyMonitor CTsense;
 
 class Blinker
 {
@@ -190,12 +190,11 @@ struct Meter {
     digitalWrite(buzzer, HIGH);
     delay(1800);
     digitalWrite(buzzer, LOW);
-
-    //    CTsense.current(iSense, 111.1);
+    CTsense.current(iSense, 111.1);
   }
 
   float measureCurrentAC() {
-    //    return CTsense.calcIrms(1480);
+    return CTsense.calcIrms(1480);
   }
 
 
@@ -424,12 +423,12 @@ struct Meter {
 
   void takeReadings() {
     float volt = measureVoltageAC();
-    float Amp = 0.25;
+    float Amp = fabs(measureCurrentAC());
+//    float Amp = 0.25;
     Serial.print("V: ");
     Serial.println(volt);
     Serial.print("I: ");
     Serial.println(Amp);
-    //    amp = fabs(measureCurrentAC());
     meterParams.avg_voltage = meterParams.avg_voltage + volt;
     meterParams.avg_current = meterParams.avg_current + Amp;
     count++;
