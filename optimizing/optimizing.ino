@@ -1,4 +1,4 @@
-#include <EmonLib.h>
+#include <CurrentTransformer.h>
 #include <EEPROM.h>
 #include <Ed25519.h>
 
@@ -10,7 +10,7 @@
 #define buzzer 7
 #define ledActive 8
 #define ledWorking 9
-#define iSense A0
+#define iSense A5
 #define vSense A1
 
 #define key_addr 0
@@ -24,8 +24,6 @@
 
 int i;
 
-const char* device_name = "maxwell";
-
 char Resp[11], Bufr[320], Memo[33], Usage[42], Temp[129];
 
 char strForm[17];
@@ -38,7 +36,8 @@ byte gateway_channel = 0x1D;
 
 uint8_t addr_buffer[3] = {0xFF, 0xFF, gateway_channel};
 
-EnergyMonitor CTsense;
+CT_Sensor ct0(iSense, 100, 1);
+CT_Control ct(CT_FREQ_50HZ);
 
 class Blinker
 {
@@ -190,11 +189,19 @@ struct Meter {
     digitalWrite(buzzer, HIGH);
     delay(1800);
     digitalWrite(buzzer, LOW);
-    CTsense.current(iSense, 111.1);
+    ct.begin();
   }
 
   float measureCurrentAC() {
-    return CTsense.calcIrms(1480);
+    ct.read(&ct0);
+    float i = ct0.amps();
+    if(isnan(i))
+    {
+      return 0.0;
+    }
+    else {
+      return i;
+    }
   }
 
 
@@ -226,14 +233,8 @@ struct Meter {
 
   void deserializeAndExtractList(const char* list) {
     meterParams.is_active = atoi(readStrList(Memo, list, 1));
-    Serial.print(F("atv: "));
-    Serial.println(meterParams.is_active);
     meterParams.is_on = atoi(readStrList(Memo, list, 2));
-    Serial.print(F("on: "));
-    Serial.println(meterParams.is_on);
     meterParams.interval = atoi(readStrList(Memo, list, 3));
-    Serial.print(F("intv: "));
-    Serial.println(meterParams.interval);
     meterParams.interval = meterParams.interval * 1000UL;
   }
 
@@ -318,7 +319,7 @@ struct Meter {
   void serializeJSON(char* Buff) {
     computeUsage(Usage);
     Buff[0] = '\0';
-    sprintf(Buff, "{\"adrh\":%d,\"adrl\":%d,\"dev\":\"%s\",\"data\":", addr_h, addr_l, device_name);
+    sprintf(Buff, "{\"adrh\":%d,\"adrl\":%d,\"data\":", addr_h, addr_l);
     sprintf(Temp, "{\"usage\":%s,", Usage);
     strncat(Buff, Temp, strlen(Temp));
     strncat(Buff, "\"pbk\":\"", 7);
@@ -424,10 +425,10 @@ struct Meter {
   void takeReadings() {
     float volt = measureVoltageAC();
     float Amp = fabs(measureCurrentAC());
-//    float Amp = 0.25;
-    Serial.print("V: ");
+    //    float Amp = 0.25;
+    Serial.print(F("V: "));
     Serial.println(volt);
-    Serial.print("I: ");
+    Serial.print(F("I: "));
     Serial.println(Amp);
     meterParams.avg_voltage = meterParams.avg_voltage + volt;
     meterParams.avg_current = meterParams.avg_current + Amp;
