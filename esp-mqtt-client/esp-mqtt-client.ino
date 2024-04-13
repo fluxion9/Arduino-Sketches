@@ -1,8 +1,8 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-const char* ssid = "jne.wton";
-const char* password = "test12345";
+const char* ssid = "jne.wton"; //change this to your wifi username
+const char* password = "test12345"; //change this to your wifi password
 
 const char* mqtt_server = "test.mosquitto.org";
 
@@ -84,18 +84,16 @@ void blink(int num)
 
 void reconnect() {
   while (!mqttclient.connected()) {
-    Serial.println("Attempting MQTT connection...");
+    // Serial.println("Attempting MQTT connection...");
     if (mqttclient.connect("meter-mqtt")) {
       blink(5);
-      Serial.println("connected!");
-      // Subscribe
-      // client.subscribe("esp32/output");
+      // Serial.println("connected!");
     } else {
       blink(3);
-      Serial.print("failed, rc=");
-      Serial.print(mqttclient.state());
-      Serial.println(" try again in 3 seconds");
-      // Wait 5 seconds before retrying
+      // Serial.print("failed, rc=");
+      // Serial.print(mqttclient.state());
+      // Serial.println(" try again in 3 seconds");
+      // Wait 3 seconds before retrying
       delay(3000);
     }
   }
