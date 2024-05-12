@@ -14,7 +14,6 @@ const char *password = "RFID-2023";
 
 char sta_num[3] = "0";
 char carddata[2048];
-char payload[2048];
 
 const char master[] = "6a026380";
 bool progmode = false;
@@ -46,6 +45,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             background-color: black;
             width: 20vw;
             padding: 3rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
             .dashboard {
                 background-color: white;
                 padding: 0.7rem 1rem;
@@ -68,6 +70,15 @@ const char index_html[] PROGMEM = R"rawliteral(
                     width: 100%;
                     height: 100%;
                 }
+            }
+            .refresh {
+                background-color: white;
+                padding: 0.7rem 1rem;
+                border-radius: 10px;
+                cursor: pointer;
+                width: 100%;
+                font-size: 1.1rem;
+                font-family: inherit;
             }
         }
 
@@ -167,6 +178,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             <!--<img src="/dashboard.png" alt="dashboard" class="dash-icon">-->
             <a href="/main.html">Dashboard</a>
         </div>
+        <div>
+            <button class="refresh">Refresh</button>
+        </div>
 
     </section>
     <section class="main">
@@ -203,22 +217,38 @@ const char index_html[] PROGMEM = R"rawliteral(
         const tableData = document.querySelector(".table-data");
         const numUID = document.querySelector(".num");
         const devnum = document.querySelector(".device");
+        const refreshButton = document.querySelector(".refresh");
 
-        function getpayloads() {
+        function getstacount() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
-                    let payload = JSON.parse(this.responseText);
-                    devnum.innerHTML = payload.stanum;
-                    let nodeData = payload.cards;
+                    devnum.innerHTML = this.responseText;
+                }
+            };
+            xhttp.open("GET", "/sta-count", true);
+            xhttp.send();
+        }
+
+        function getcards() {
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    let nodeData = JSON.parse(this.responseText);
                     let connected = nodeData.length;
                     numUID.innerHTML = connected;
                     generateTable(nodeData);
                 }
             };
-            xhttp.open("GET", "/get-payload", true);
+            xhttp.open("GET", "/cards", false);
             xhttp.send();
         }
+
+
+         refreshButton.addEventListener("click", (e) => {
+            e.preventDefault();
+            getcards();
+        });
 
         function generateTable(nodeData) {
             const tableBody = document.createElement("tbody");
@@ -235,8 +265,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             tableData.innerHTML = "";
             tableData.appendChild(tableBody);
         }
-        getpayloads();
-        setInterval(getpayloads, 1500);
+        getstacount();
+        getcards();
+        setInterval(getstacount, 1500);
     </script>
 </body>
 </html>
@@ -425,12 +456,6 @@ void loadcarddata() {
   strcat(carddata, "]");
 }
 
-void loadjson()
-{
-  payload[0] = '\0';
-  sprintf(payload, "{\"stanum\":%s,\"cards\":%s}", sta_num, carddata);
-}
-
 void setup() {
   pinMode(0, OUTPUT);
   Serial.begin(9600);
@@ -450,7 +475,6 @@ void setup() {
   Serial.println(" records in EEPROM.");
 
   carddata[0] = '\0';
-  payload[0] = '\0';
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/html", index_html);
@@ -460,10 +484,9 @@ void setup() {
     request->send_P(200, "text/plain", sta_num);
   });
 
-  server.on("/get-payload", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/cards", HTTP_GET, [](AsyncWebServerRequest *request) {
     loadcarddata();
-    loadjson();
-    request->send_P(200, "text/plain", payload);
+    request->send_P(200, "text/plain", carddata);
   });
 
   server.on("/ping", HTTP_GET, [](AsyncWebServerRequest *request) {

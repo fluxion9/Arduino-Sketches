@@ -4,12 +4,14 @@
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Set the LCD address and dimensions
 
-const int RELAY1_PIN = 2;            // Pin for controlling relay 1
-const int RELAY2_PIN = 3;            // Pin for controlling relay 2
-const int ACS712_1_PIN = A0;         // Analog pin for ACS712 sensor 1
-const int ACS712_2_PIN = A1;         // Analog pin for ACS712 sensor 2
-const int VOLTAGE_PIN = A2;          // Analog pin for ac voltage divider
-const int BATTERY_VOLTAGE_PIN = A4;  // Analog pin for inverter battery voltage divider
+int turn = 0;
+
+const int RELAY1_PIN = 3;            // Pin for controlling relay 1
+const int RELAY2_PIN = 13;           // Pin for controlling relay 2
+const int ACS712_1_PIN = A2;         // Analog pin for ACS712 sensor 1
+const int ACS712_2_PIN = A3;         // Analog pin for ACS712 sensor 2
+const int VOLTAGE_PIN = A0;          // Analog pin for ac voltage divider
+const int BATTERY_VOLTAGE_PIN = A1;  // Analog pin for inverter battery voltage divider
 
 const int KEYPAD_ROWS = 4;  // Number of rows in the keypad
 const int KEYPAD_COLS = 4;  // Number of columns in the keypad
@@ -21,16 +23,16 @@ char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
   { '*', '0', '#', 'D' }
 };
 
-byte rowPins[KEYPAD_ROWS] = { 9, 8, 7, 6 };    // Keypad row pins
-byte colPins[KEYPAD_COLS] = { 5, 4, 12, 11 };  // Keypad column pins
+byte rowPins[KEYPAD_ROWS] = { 12, 11, 10,  9};    // Keypad row pins
+byte colPins[KEYPAD_COLS] = { 8, 7, 6, 5 };  // Keypad column pins
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);
 
-const float ACS712_SENSITIVITY = 0.185;  // Sensitivity of ACS712 sensor in mV/A
+const float ACS712_SENSITIVITY = 0.066;  // Sensitivity of ACS712 sensor in mV/A
 
 const float MAX_POWER = 1000.0;  // Maximum power rating in watts
 
-const float BATTERY_CUTOFF_VOLTAGE = 11.5;  // Battery voltage cutoff in volts
+const float BATTERY_CUTOFF_VOLTAGE = 10.8;  // Battery voltage cutoff in volts
 
 bool BatteryIsLow = false;
 
@@ -58,13 +60,14 @@ float measureVoltageAC(int pin) {
 float measureVoltageDC(int pin) {
   float voltage = (float)analogRead(pin);
   voltage = (voltage * 5.0) / 1023.0;
-  voltage *= 55.0;
+  voltage *= 11.0;
   return voltage;
 }
 
 float measureCurrentAC(int pin) {
   int rawValue = analogRead(pin);
-  return ((rawValue - 512) * 5.0) / 1024.0 / ACS712_SENSITIVITY;
+  float i = ((rawValue - 512) * 5.0) / 1023.0 / ACS712_SENSITIVITY;
+  return fabs(i);
 }
 
 void HandleBatteryPriority(int priority) {
@@ -152,6 +155,31 @@ void HandleKeypad() {
           lcd.clear();
           break;
         }
+
+      }
+    }
+    else if (key == 'B') {
+      // Process setting maximum power rating
+      lcd.clear();
+      lcd.print("Enter Bat VOlt:");
+      String powerStr = "";
+      while (true) {
+        char key2 = keypad.getKey();
+        if (key2 >= '0' && key2 <= '9') {
+          powerStr += key2;
+          lcd.setCursor(powerStr.length() - 1, 1);
+          lcd.print(key2);
+        } else if (key2 == '#') {
+          cutoffVoltage = powerStr.toFloat();
+          lcd.clear();
+          lcd.print("Max Power set to:");
+          lcd.setCursor(0, 1);
+          lcd.print(maxPowerRating);
+          delay(1000);
+          lcd.clear();
+          break;
+        }
+        
       }
     }
   }
@@ -160,23 +188,32 @@ void HandleKeypad() {
 void updateDisplay(int RefreshRate) {
   if (millis() - lastDisplayTime >= RefreshRate) {
     // Update LCD with relevant information
-    lcd.clear();
-    lcd.print("Load 1:");
-    lcd.setCursor(0, 1);
-    lcd.print("V: ");
-    lcd.print(voltage);
-    lcd.print("V  I: ");
-    lcd.print(current1);
-    lcd.print("A");
-    lcd.setCursor(0, 2);
-    lcd.print("Load 2:");
-    lcd.setCursor(0, 3);
-    lcd.print("V: ");
-    lcd.print(voltage);
-    lcd.print("V  I: ");
-    lcd.print(current2);
-    lcd.print("A");
-    lastDisplayTime = millis();
+    switch (turn) {
+      case 0:
+        lcd.clear();
+        lcd.print("Load 1:");
+        lcd.setCursor(0, 1);
+        lcd.print("V: ");
+        lcd.print(voltage);
+        lcd.print("V  I: ");
+        lcd.print(current1);
+        lcd.print("A");
+        turn = 1;
+        lastDisplayTime = millis();
+        break;
+      case 1:
+        lcd.clear();
+        lcd.print("Load 2:");
+        lcd.setCursor(0, 1);
+        lcd.print("V: ");
+        lcd.print(voltage);
+        lcd.print("V  I: ");
+        lcd.print(current2);
+        lcd.print("A");
+        turn = 0;
+        lastDisplayTime = millis();
+        break;
+    }
   }
 }
 
@@ -194,7 +231,9 @@ void takeReadings() {
 void setup() {
   pinMode(RELAY1_PIN, OUTPUT);
   pinMode(RELAY2_PIN, OUTPUT);
-  lcd.begin(16, 2);
+  lcd.init();
+  lcd.init();
+  lcd.backlight();
   lcd.print("Priority Load");
   lcd.setCursor(0, 1);
   lcd.print("Control Device");

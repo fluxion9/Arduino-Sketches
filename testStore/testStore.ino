@@ -1,13 +1,17 @@
 #include <EEPROM.h>
 
-struct MeterParams {
-  uint8_t usage[12];
-  int pointer = -1;
-  char Token[12][12];
-  float energy = 0.00;
-  uint8_t lastStamp = 0;
-  uint8_t use = 0;
-};
+// struct MeterParams {
+//   uint8_t usage[12];
+//   int pointer = -1;
+//   char Token[12][12];
+//   float energy = 0.00;
+//   uint8_t lastStamp = 0;
+//   uint8_t use = 0;
+// };
+
+// struct MeterParams {
+//   float energy = 0.00;
+// };
 
 // struct MeterParams
 // {
@@ -32,6 +36,11 @@ struct MeterParams {
 //   uint8_t use = 0;
 // }d;
 
+struct MeterParams
+{
+  float energy = 0.00;
+}d;
+
 void writeToEEPROM(int address, const MeterParams& data) {
   EEPROM.put(address, data);
 }
@@ -47,14 +56,14 @@ void setup() {
   if(EEPROM.read(0) == 0)
   {
     Serial.println("EEPROM empty, loading data...");
-    // writeToEEPROM(1, d);
-    // EEPROM.write(0, 1);
+    writeToEEPROM(1, d);
+    EEPROM.write(0, 1);
     Serial.println("Done!");
   }
   else {
     Serial.println("EEPROM not empty, reading data...");
     readFromEEPROM(1, mParams);
-    Serial.println(mParams.Token[0]);
+    Serial.println(mParams.energy);
     Serial.println("Done!");
   }
 }
