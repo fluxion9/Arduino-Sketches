@@ -23,8 +23,8 @@ char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
   { '*', '0', '#', 'D' }
 };
 
-byte rowPins[KEYPAD_ROWS] = { 12, 11, 10,  9};    // Keypad row pins
-byte colPins[KEYPAD_COLS] = { 8, 7, 6, 5 };  // Keypad column pins
+byte rowPins[KEYPAD_ROWS] = { 12, 11, 10, 9 };  // Keypad row pins
+byte colPins[KEYPAD_COLS] = { 8, 7, 6, 5 };     // Keypad column pins
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);
 
@@ -36,7 +36,7 @@ const float BATTERY_CUTOFF_VOLTAGE = 10.8;  // Battery voltage cutoff in volts
 
 bool BatteryIsLow = false;
 
-int LoadPriority = 1;
+int PriorityLevel = 1;
 
 float maxPowerRating = MAX_POWER;
 
@@ -47,7 +47,10 @@ unsigned long lastDisplayTime = 0;
 float voltage = 0.0;
 float current1 = 0.0;
 float current2 = 0.0;
+float power1 = 0.0;
+float power2 = 0.0;
 float power3 = 0.0;
+float battery = 0.0;
 
 float measureVoltageAC(int pin) {
   float voltage = (float)analogRead(pin);
@@ -126,11 +129,11 @@ void HandleKeypad() {
     if (key >= '0' && key <= '9') {
       int prio = key - '0';
       if (prio > 0 && prio < 3) {
-        LoadPriority = prio;
+        PriorityLevel = prio;
         lcd.clear();
         lcd.print("Priority set to:");
         lcd.setCursor(0, 1);
-        lcd.print(LoadPriority);
+        lcd.print(PriorityLevel);
         delay(1000);
         lcd.clear();
       }
@@ -148,38 +151,41 @@ void HandleKeypad() {
         } else if (key2 == '#') {
           maxPowerRating = powerStr.toFloat();
           lcd.clear();
-          lcd.print("Max Power set to:");
+          lcd.print("Power set to:");
           lcd.setCursor(0, 1);
           lcd.print(maxPowerRating);
           delay(1000);
           lcd.clear();
           break;
         }
-
       }
-    }
-    else if (key == 'B') {
+    } else if (key == 'B') {
       // Process setting maximum power rating
       lcd.clear();
-      lcd.print("Enter Bat VOlt:");
-      String powerStr = "";
+      lcd.print("Enter Batt Volt:");
+      String volStr = "";
+      int dec_cnt = 0;
       while (true) {
         char key2 = keypad.getKey();
-        if (key2 >= '0' && key2 <= '9') {
-          powerStr += key2;
-          lcd.setCursor(powerStr.length() - 1, 1);
+        if (key2 == '*' && dec_cnt < 1 && volStr.length() >= 1) {
+          volStr += ".";
+          dec_cnt++;
+          lcd.setCursor(volStr.length() - 1, 1);
+          lcd.print('.');
+        } else if (key2 >= '0' && key2 <= '9') {
+          volStr += key2;
+          lcd.setCursor(volStr.length() - 1, 1);
           lcd.print(key2);
         } else if (key2 == '#') {
-          cutoffVoltage = powerStr.toFloat();
+          cutoffVoltage = volStr.toFloat();
           lcd.clear();
-          lcd.print("Max Power set to:");
+          lcd.print("Min Volt set to:");
           lcd.setCursor(0, 1);
-          lcd.print(maxPowerRating);
+          lcd.print(cutoffVoltage);
           delay(1000);
           lcd.clear();
           break;
         }
-        
       }
     }
   }
@@ -193,11 +199,11 @@ void updateDisplay(int RefreshRate) {
         lcd.clear();
         lcd.print("Load 1:");
         lcd.setCursor(0, 1);
-        lcd.print("V: ");
-        lcd.print(voltage);
-        lcd.print("V  I: ");
-        lcd.print(current1);
-        lcd.print("A");
+        lcd.print("V:");
+        lcd.print(voltage, 0);
+        lcd.print("V P:");
+        lcd.print(power1, 0);
+        lcd.print("W");
         turn = 1;
         lastDisplayTime = millis();
         break;
@@ -205,11 +211,21 @@ void updateDisplay(int RefreshRate) {
         lcd.clear();
         lcd.print("Load 2:");
         lcd.setCursor(0, 1);
-        lcd.print("V: ");
-        lcd.print(voltage);
-        lcd.print("V  I: ");
-        lcd.print(current2);
-        lcd.print("A");
+        lcd.print("V:");
+        lcd.print(voltage, 0);
+        lcd.print("V P:");
+        lcd.print(power2, 0);
+        lcd.print("W");
+        turn = 2;
+        lastDisplayTime = millis();
+        break;
+      case 2:
+        lcd.clear();
+        lcd.print("Battery:");
+        lcd.setCursor(0, 1);
+        lcd.print("Volt:");
+        lcd.print(battery);
+        lcd.print("V");
         turn = 0;
         lastDisplayTime = millis();
         break;
@@ -221,9 +237,10 @@ void takeReadings() {
   voltage = measureVoltageAC(VOLTAGE_PIN);
   current1 = measureCurrentAC(ACS712_1_PIN);
   current2 = measureCurrentAC(ACS712_2_PIN);
+  battery = measureVoltageDC(BATTERY_VOLTAGE_PIN);
 
-  float power1 = voltage * current1;
-  float power2 = voltage * current2;
+  power1 = voltage * current1;
+  power2 = voltage * current2;
 
   power3 = power1 + power2;
 }
@@ -246,6 +263,6 @@ void loop() {
   HandleKeypad();
   takeReadings();
   updateDisplay(1000);
-  HandleBatteryPriority(LoadPriority);
-  HandleLoadPriority(LoadPriority);
+  HandleBatteryPriority(PriorityLevel);
+  HandleLoadPriority(PriorityLevel);
 }
