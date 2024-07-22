@@ -30,9 +30,9 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_C
 
 const float ACS712_SENSITIVITY = 0.066;  // Sensitivity of ACS712 sensor in mV/A
 
-const float MAX_POWER = 1000.0;  // Maximum power rating in watts
+#define MAX_POWER 1000.0  // Maximum power rating in watts
 
-const float BATTERY_CUTOFF_VOLTAGE = 10.8;  // Battery voltage cutoff in volts
+#define BATTERY_CUTOFF_VOLTAGE 10.0  // Battery voltage cutoff in volts
 
 bool BatteryIsLow = false;
 
@@ -42,7 +42,7 @@ float maxPowerRating = MAX_POWER;
 
 float cutoffVoltage = BATTERY_CUTOFF_VOLTAGE;
 
-unsigned long lastDisplayTime = 0;
+unsigned long lastDisplayTime = 0, lastPriorityCheckTime = 0;
 
 float voltage = 0.0;
 float current1 = 0.0;
@@ -100,25 +100,28 @@ void HandleBatteryPriority(int priority) {
 }
 
 void HandleLoadPriority(int priority) {
-  switch (priority) {
-    case 1:
-      digitalWrite(RELAY1_PIN, 1);
-      if (power3 > maxPowerRating || BatteryIsLow) {
-        digitalWrite(RELAY2_PIN, 0);
-      } else {
-        digitalWrite(RELAY2_PIN, 1);
-      }
-      break;
-    case 2:
-      digitalWrite(RELAY2_PIN, 1);
-      if (power3 > maxPowerRating || BatteryIsLow) {
-        digitalWrite(RELAY1_PIN, 0);
-      } else {
+  if (millis() - lastPriorityCheckTime >= 1000) {
+    switch (priority) {
+      case 1:
         digitalWrite(RELAY1_PIN, 1);
-      }
-      break;
-    default:
-      break;
+        if (power3 > maxPowerRating || BatteryIsLow) {
+          digitalWrite(RELAY2_PIN, 0);
+        } else {
+          digitalWrite(RELAY2_PIN, 1);
+        }
+        break;
+      case 2:
+        digitalWrite(RELAY2_PIN, 1);
+        if (power3 > maxPowerRating || BatteryIsLow) {
+          digitalWrite(RELAY1_PIN, 0);
+        } else {
+          digitalWrite(RELAY1_PIN, 1);
+        }
+        break;
+      default:
+        break;
+    }
+    lastPriorityCheckTime = millis();
   }
 }
 
@@ -226,6 +229,16 @@ void updateDisplay(int RefreshRate) {
         lcd.print("Volt:");
         lcd.print(battery);
         lcd.print("V");
+        turn = 3;
+        lastDisplayTime = millis();
+        break;
+      case 3:
+        lcd.clear();
+        lcd.print("Power 3:");
+        lcd.setCursor(0, 1);
+        lcd.print("Power3:");
+        lcd.print(power3, 0);
+        lcd.print("W");
         turn = 0;
         lastDisplayTime = millis();
         break;
@@ -238,10 +251,8 @@ void takeReadings() {
   current1 = measureCurrentAC(ACS712_1_PIN);
   current2 = measureCurrentAC(ACS712_2_PIN);
   battery = measureVoltageDC(BATTERY_VOLTAGE_PIN);
-
   power1 = voltage * current1;
   power2 = voltage * current2;
-
   power3 = power1 + power2;
 }
 
@@ -257,6 +268,7 @@ void setup() {
   delay(2000);
   lcd.clear();
   lastDisplayTime = millis();
+  lastPriorityCheckTime = millis();
 }
 
 void loop() {

@@ -1,8 +1,8 @@
-#include <EEPROM.h>
+// #include <EEPROM.h>
 #include <Wire.h>
-#include <string.h>
+// #include <string.h>
 #include <LiquidCrystal_I2C.h>
-#include "RTClib.h"
+// #include "RTClib.h"
 
 
 #define iSense A1
@@ -10,6 +10,8 @@
 #define vSense2 A2
 #define pullSwitch 2
 #define triacPin 3
+
+#define ACS712_SENSITIVITY 0.185  // Sensitivity of ACS712 sensor in mV/A
 
 // #define triacPin 13
 
@@ -20,16 +22,16 @@ unsigned long diff = 0, lastRoutineStamp = 0, lastDisplayStamp = 0;
 float iVolt = 0.0, iCurr = 0.0, iPowr = 0.0;
 float avg_v = 0.0, avg_i = 0.0, energy = 0.0;
 
-float balance = 0.0;
+float balance = 0.0, cnt = 0;
 bool read_bal = true;
 
 int ack = 0;
 
 char input[25], memo[25], buffer[90], strForm0[17], strForm1[12], strForm2[12];
 
-int i = 0, cnt = 0, state = 0, RefreshRate = 1000;
+int i = 0, state = 0, RefreshRate = 1000;
 
-RTC_DS1307 rtc;
+// RTC_DS1307 rtc;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
@@ -38,13 +40,13 @@ struct MeterParams {
 };
 MeterParams mParams;
 
-void writeToEEPROM(int address, const MeterParams& data) {
-  EEPROM.put(address, data);
-}
+// void writeToEEPROM(int address, const MeterParams& data) {
+//   EEPROM.put(address, data);
+// }
 
-void readFromEEPROM(int address, MeterParams& data) {
-  EEPROM.get(address, data);
-}
+// void readFromEEPROM(int address, MeterParams& data) {
+//   EEPROM.get(address, data);
+// }
 
 
 void clearRow(byte row) {
@@ -53,6 +55,20 @@ void clearRow(byte row) {
   lcd.setCursor(0, row);
 }
 struct TokenMeter {
+  float measureCurrentAC() {
+    int rawValue = analogRead(iSense);
+    float i = ((rawValue - 512) * 5.0) / 1023.0 / ACS712_SENSITIVITY;
+    return fabs(i);
+  }
+
+  float measureVoltageAC() {
+    float voltage = (float)analogRead(vSense);
+    voltage = (voltage * 5.0) / 1023.0;
+    voltage *= 101.0;
+    voltage /= 1.414;
+    return voltage;
+  }
+
   void display(int mode) {
     if (millis() - lastDisplayStamp >= RefreshRate) {
       if (mode == 0) {
@@ -85,48 +101,36 @@ struct TokenMeter {
     display(0);
   }
 
-  float measureCurrentAC() {
-    return 20.0;
-  }
+  // void latchIn() {
+  //   digitalWrite(pullSwitch, 1);
+  //   delay(1500);
+  // }
 
-  float measureVoltageAC() {
-    float voltage = (float)analogRead(vSense);
-    voltage = (voltage * 5.0) / 1023.0;
-    voltage *= 101.0;
-    voltage /= 1.414;
-    return voltage;
-  }
+  // bool IsPowerOut() {
+  //   float v = (float)analogRead(vSense2);
+  //   v = (v * 5.0) / 1023.0;
+  //   v *= 11.0;
+  //   if (v >= 1.0) {
+  //     return false;
+  //   } else {
+  //     return true;
+  //   }
+  // }
 
-  void latchIn() {
-    digitalWrite(pullSwitch, 1);
-    delay(1500);
-  }
+  // void shutdown() {
+  //   // Serial.println("Shutting Down...");
+  //   delay(1000);
+  //   digitalWrite(pullSwitch, 0);
+  //   delay(2000);
+  //   while (true)
+  //     ;
+  // }
 
-  bool IsPowerOut() {
-    float v = (float)analogRead(vSense2);
-    v = (v * 5.0) / 1023.0;
-    v *= 11.0;
-    if (v >= 1.0) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  void shutdown() {
-    // Serial.println("Shutting Down...");
-    delay(1000);
-    digitalWrite(pullSwitch, 0);
-    delay(2000);
-    while (true)
-      ;
-  }
-
-  void backupData() {
-    // Serial.println("Backing Up...");
-    writeToEEPROM(1, mParams);
-    delay(1000);
-  }
+  // void backupData() {
+  //   // Serial.println("Backing Up...");
+  //   writeToEEPROM(1, mParams);
+  //   delay(1000);
+  // }
 
   char* readStrList(char* memory, const char* strList, byte pos) {
     byte index = 0;
@@ -202,8 +206,15 @@ struct TokenMeter {
   void checkSerial(char* res) {
     if (Serial.available()) {
       res[0] = '\0';
+      int count;
       while (Serial.available() > 0) {
         delay(3);
+        count++;
+        if(count > 20)
+        {
+          res[0] = '\0';
+          break;
+        }
         char c = Serial.read();
         strncat(res, &c, 1);
       }
@@ -259,10 +270,10 @@ struct TokenMeter {
   }
 
   void Actions() {
-    if (IsPowerOut()) {
-      backupData();
-      shutdown();
-    }
+    // if (IsPowerOut()) {
+    //   // backupData();
+    //   // shutdown();
+    // }
     if (balance > 0.0) {
       if (state) {
         ActivateIsolator();
@@ -281,7 +292,7 @@ struct TokenMeter {
     digitalWrite(triacPin, 0);
   }
   void init(void) {
-    latchIn();
+    // latchIn();
 
     Serial.begin(9600);
 
@@ -292,15 +303,15 @@ struct TokenMeter {
     pinMode(triacPin, 1);
     DeactivateIsolator();
 
-    if (EEPROM.read(0) != 0) {
-      // Serial.println("EEPROM not empty, reading data...");
-      readFromEEPROM(1, mParams);
-      // Serial.println("Done!");
-      //Serial.println(mParams.energy, 8);
-    } else {
-      while (1)
-        ;
-    }
+    // if (EEPROM.read(0) != 0) {
+    //   // Serial.println("EEPROM not empty, reading data...");
+    //   readFromEEPROM(1, mParams);
+    //   // Serial.println("Done!");
+    //   //Serial.println(mParams.energy, 8);
+    // } else {
+    //   while (1)
+    //     ;
+    // }
 
     // if (!rtc.begin()) {
     //   Serial.println("Couldn't find RTC");
