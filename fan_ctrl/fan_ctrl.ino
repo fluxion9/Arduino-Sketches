@@ -102,6 +102,7 @@ struct FCtrl
   void measure_temp(void)
   {
     float t = dht.readTemperature();
+    dht.
     if (isnan(t))
     {
       temperature = 0.0;

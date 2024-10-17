@@ -6,12 +6,12 @@
 
 
 #define iSense A1
-#define vSense A3
-#define vSense2 A2
-#define pullSwitch 2
-#define triacPin 3
+#define vSense A2
+#define vSense2 A0
+#define pullSwitch 13
+#define triacPin 11
 
-#define ACS712_SENSITIVITY 0.185  // Sensitivity of ACS712 sensor in mV/A
+#define ACS712_SENSITIVITY 0.185  // Sensitivity of ACS712 sensor in V/A
 
 // #define triacPin 13
 
