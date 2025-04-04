@@ -170,31 +170,16 @@ const char remote_html[] PROGMEM = R"rawliteral(
       border: none;
     }
 
-    /* Forward button */
-    .forward {
-      background-color: #ff5c5c;
-    }
+    /* Movement Buttons */
+    .forward { background-color: #ff5c5c; }   /* Red */
+    .backward { background-color: #5c5cff; }  /* Blue */
+    .stop { background-color: #cccccc; color: #ffffff; } /* Grey */
+    .left { background-color: #5cff5c; }      /* Green */
+    .right { background-color: #ffff5c; }     /* Yellow */
 
-    /* Backward button */
-    .backward {
-      background-color: #5c5cff;
-    }
-
-    /* Stop button */
-    .stop {
-      background-color: #cccccc;
-      color: #ffffff;
-    }
-
-    /* Turn left button */
-    .left {
-      background-color: #5cff5c;
-    }
-
-    /* Turn right button */
-    .right {
-      background-color: #ffff5c;
-    }
+    /* Suction Buttons */
+    .suction-start { background-color: #ff9800; } /* Orange */
+    .suction-stop { background-color: #8e44ad; color: #ffffff; } /* Purple */
   </style>
 </head>
 <body>
@@ -210,58 +195,26 @@ const char remote_html[] PROGMEM = R"rawliteral(
     <div class="button-container">
       <button class="backward" onclick="backward()">Backward</button>
     </div>
+    <div class="button-container">
+      <button class="suction-start" onclick="startSuction()">Start Suction</button>
+      <button class="suction-stop" onclick="stopSuction()">Stop Suction</button>
+    </div>
   </div>
+
   <script lang="text/javascript">
-  function forward()
-  {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-      }
-      };
-      xhttp.open("GET", "http://192.168.4.1/forward", true);
+    function sendRequest(url) {
+      var xhttp = new XMLHttpRequest();
+      xhttp.open("GET", "http://192.168.4.1" + url, true);
       xhttp.send();
-  }
-  function backward()
-  {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-      }
-      };
-      xhttp.open("GET", "http://192.168.4.1/backward", true);
-      xhttp.send();
-  }
-  function left()
-  {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-      }
-      };
-      xhttp.open("GET", "http://192.168.4.1/turn-left", true);
-      xhttp.send();
-  }
-  function right()
-  {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-      }
-      };
-      xhttp.open("GET", "http://192.168.4.1/turn-right", true);
-      xhttp.send();
-  }
-  function stop()
-  {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-      }
-      };
-      xhttp.open("GET", "http://192.168.4.1/stop", true);
-      xhttp.send();
-  }
+    }
+
+    function forward() { sendRequest("/forward"); }
+    function backward() { sendRequest("/backward"); }
+    function left() { sendRequest("/turn-left"); }
+    function right() { sendRequest("/turn-right"); }
+    function stop() { sendRequest("/stop"); }
+    function startSuction() { sendRequest("/suction-start"); }
+    function stopSuction() { sendRequest("/suction-stop"); }
   </script>
 </body>
 </html>
@@ -274,7 +227,7 @@ unsigned long last_millis = 0;
 void setup()
 {
   Serial.begin(9600);
-  Serial.print("Setting AP (Access Point)…");
+  // Serial.print("Setting AP (Access Point)…");
   WiFi.softAP(ssid); // no password
   IPAddress IP = WiFi.softAPIP();
   // Serial.print("AP IP address: ");
@@ -316,6 +269,16 @@ void setup()
   server.on("/stop", HTTP_GET, [](AsyncWebServerRequest *request)
             {
     Serial.println("+stop;");
+    request->send(200); });
+  
+  server.on("/suction-start", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+    Serial.println("+stas;");
+    request->send(200); });
+  
+  server.on("/suction-stop", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+    Serial.println("+stos;");
     request->send(200); });
 
   server.on("/cw", HTTP_GET, [](AsyncWebServerRequest *request)

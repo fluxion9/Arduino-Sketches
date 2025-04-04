@@ -1,6 +1,6 @@
-#include <TinyGPSPlus.h>
+// #include <TinyGPSPlus.h>
 
-TinyGPSPlus gps;
+// TinyGPSPlus gps;
 
 #define trig0 13
 #define trig1 23
@@ -17,7 +17,9 @@ TinyGPSPlus gps;
 #define motor1_F 10
 #define motor1_R 11
 
-#define obsThresh 6.0
+#define m1 3
+
+#define obsThresh 9.0
 
 #define cs 0.0332
 
@@ -25,7 +27,7 @@ String Buffer = "", data = "", mem = "";
 
 bool temp = false;
 
-double latitude = 0.0, longitude = 0.0;
+// double latitude = 0.0, longitude = 0.0;
 
 byte trigs[4] = {trig0, trig1, trig2, trig3};
 byte echos[4] = {echo0, echo1, echo2, echo3};
@@ -49,7 +51,7 @@ struct RBV
 {
   void init(void)
   {
-    Serial3.begin(9600);
+    // Serial3.begin(9600);
     Serial.begin(9600);
     Buffer.reserve(94);
     data.reserve(32);
@@ -59,6 +61,8 @@ struct RBV
     pinMode(motor0_R, 1);
     pinMode(motor1_F, 1);
     pinMode(motor1_R, 1);
+
+    pinMode(m1, 1);
   }
 
   float measureDistance(byte trig, byte echo)
@@ -117,36 +121,36 @@ struct RBV
     }
   }
 
-  void readGPS()
-  {
-    while (Serial3.available() > 0)
-    {
-      gps.encode(Serial3.read());
-      if (gps.location.isUpdated())
-      {
-        getData();
-      }
-      else
-      {
-        if (!temp)
-        {
-          getData();
-          temp = true;
-        }
-      }
-    }
-  }
+  // void readGPS()
+  // {
+  //   while (Serial3.available() > 0)
+  //   {
+  //     gps.encode(Serial3.read());
+  //     if (gps.location.isUpdated())
+  //     {
+  //       getData();
+  //     }
+  //     else
+  //     {
+  //       if (!temp)
+  //       {
+  //         getData();
+  //         temp = true;
+  //       }
+  //     }
+  //   }
+  // }
 
-  void getData()
-  {
-    latitude = gps.location.lat();
-    longitude = gps.location.lng();
-  }
+  // void getData()
+  // {
+  //   latitude = gps.location.lat();
+  //   longitude = gps.location.lng();
+  // }
 
   void run(void)
   {
     checkObstacle();
-    readGPS();
+    // readGPS();
     react();
     while (Serial.available() > 0)
     {
@@ -177,6 +181,14 @@ struct RBV
       else if (data == "+tl;")
       {
         turnLeft();
+      }
+      else if (data == "+stas;")
+      {
+        startSuction();
+      }
+      else if (data == "+stos;")
+      {
+        stopSuction();
       }
       else if (data == "+stop;")
       {
@@ -210,15 +222,30 @@ struct RBV
   void react()
   {
     checkObstacle();
-    if (Status == Forward && distances[0] < obsThresh)
+    if (Status == Forward && distances[0] <= obsThresh)
     {
       stop();
     }
-    else if (Status == Backward && distances[1] < obsThresh)
+    else if (Status == Backward && distances[1] <= obsThresh)
     {
       stop();
     }
   }
+
+  void startSuction()
+  {
+    checkObstacle();
+    analogWrite(m1, 150);
+    delay(100);
+  }
+
+  void stopSuction()
+  {
+    checkObstacle();
+    analogWrite(m1, 150);
+    delay(100);
+  }
+
 
   void backward()
   {
@@ -239,16 +266,16 @@ struct RBV
   void turnRight()
   {
     stop();
-    analogWrite(motor0_F, speed);
-    analogWrite(motor1_R, speed);
+    analogWrite(motor0_F, 250);
+    analogWrite(motor1_R, 250);
     Status = turnright;
   }
 
   void turnLeft()
   {
     stop();
-    analogWrite(motor1_F, speed);
-    analogWrite(motor0_R, speed);
+    analogWrite(motor1_F, 250);
+    analogWrite(motor0_R, 250);
     Status = turnleft;
   }
 
@@ -275,9 +302,9 @@ struct RBV
     Buffer.concat(",\"speed\":");
     Buffer.concat(speed);
     Buffer.concat(",\"lng\":");
-    Buffer.concat(longitude);
+    Buffer.concat("--");
     Buffer.concat(",\"lat\":");
-    Buffer.concat(latitude);
+    Buffer.concat("--");
     Buffer.concat(",\"stat\":");
     Buffer.concat(Status);
     Buffer.concat("}");
