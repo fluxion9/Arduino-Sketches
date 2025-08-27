@@ -5,11 +5,12 @@
 // #include "RTClib.h"
 
 
-#define iSense A1
-#define vSense A2
-#define vSense2 A0
-#define pullSwitch 13
-#define triacPin 11
+#define iSense A3 // current sensor pin
+#define vSense A0 // voltage sensing pin
+#define vSense2 A2 // works with latch. currently inactive
+#define pullSwitch 13 // works with latch too
+#define triacPin 12 // triac/relay control pin
+#define bSense A1 // battery voltage divider analog pin
 
 #define ACS712_SENSITIVITY 0.185  // Sensitivity of ACS712 sensor in V/A
 
@@ -22,12 +23,14 @@ unsigned long diff = 0, lastRoutineStamp = 0, lastDisplayStamp = 0;
 float iVolt = 0.0, iCurr = 0.0, iPowr = 0.0;
 float avg_v = 0.0, avg_i = 0.0, energy = 0.0;
 
+float vbatt = 0.0;
+
 float balance = 0.0, cnt = 0;
 bool read_bal = true;
 
 int ack = 0;
 
-char input[25], memo[25], buffer[90], strForm0[17], strForm1[12], strForm2[12];
+char input[25], memo[25], buffer[90], strForm0[17], strForm1[12], strForm2[12], strForm3[12];
 
 int i = 0, state = 0, RefreshRate = 1000;
 
@@ -69,6 +72,13 @@ struct TokenMeter {
     return voltage;
   }
 
+  float measureBatteryVoltage() {
+    float voltage = (float)analogRead(bSense);
+    voltage = (voltage * 5.0) / 1023.0;
+    voltage *= 11.0;
+    return voltage;
+  }
+
   void display(int mode) {
     if (millis() - lastDisplayStamp >= RefreshRate) {
       if (mode == 0) {
@@ -88,6 +98,8 @@ struct TokenMeter {
   void takeReadings(void) {
     float v = measureVoltageAC();
     float i = measureCurrentAC();
+    vbatt = measureBatteryVoltage();
+
     iPowr = v * i;
     if (state && balance > 0.0) {
       iVolt += v;
@@ -196,7 +208,9 @@ struct TokenMeter {
     dtostrf(avg_p, 4, 1, strForm1);
     strForm2[0] = '\0';
     dtostrf(mParams.energy, 4, 6, strForm2);
-    sprintf(buffer, "{\"mid\":\"%s\",\"vol\":%s,\"pow\":%s,\"eng\":%s,\"ack\":%d}", mid, strForm0, strForm1, strForm2, ack);
+    strForm3[0] = '\0';
+    dtostrf(vbatt, 4, 1, strForm3);
+    sprintf(buffer, "{\"mid\":\"%s\",\"vol\":%s,\"pow\":%s,\"eng\":%s,\"bat\":%s,\"ack\":%d}", mid, strForm0, strForm1, strForm2, strForm3, ack);
     Serial.print(buffer);
     if (ack == 1) {
       ack = 0;
@@ -301,6 +315,8 @@ struct TokenMeter {
     pinMode(vSense2, 0);
     pinMode(pullSwitch, 1);
     pinMode(triacPin, 1);
+    pinMode(bSense, 0);
+
     DeactivateIsolator();
 
     // if (EEPROM.read(0) != 0) {

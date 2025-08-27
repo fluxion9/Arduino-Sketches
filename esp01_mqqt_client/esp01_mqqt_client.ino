@@ -4,8 +4,8 @@
 #include <WiFiClient.h>
 
 
-const char* ssid = "OGSSC-01";      //change this to your wifi username
-const char* password = "OG-2024*";  //change this to your wifi password
+const char* ssid = "OGSCS-01";      //change this to your wifi username
+const char* password = "1GRD2025";  //change this to your wifi password
 
 char data[90];
 
