@@ -31,6 +31,7 @@ void saveSettings() {
   EEPROM.put(0, settings);
   EEPROM.commit();
   EEPROM.end();
+  digitalWrite(HUM_PWR_PIN, LOW);
   spraying = false;
 }
 
@@ -306,6 +307,7 @@ void loop() {
       }
     } else {
       digitalWrite(HUM_PWR_PIN, LOW);
+      delay(1500);
       spraying = false;
     }
   } else if (settings.mode == 3 && !spraying) {
