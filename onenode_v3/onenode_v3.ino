@@ -15,7 +15,7 @@ const char* password = "nzsm2327$";
 const char* deviceName = "ESP32-Test-dev";
 const char* apiKey = "hgbxydtwue43";
 
-String host = "http://10.244.165.232:5000";
+String host = "https://onebox.onegridenergies.com";
 
 // Timing variables
 unsigned long last_connect_millis = 0;

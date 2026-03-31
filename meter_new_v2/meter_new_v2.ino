@@ -12,22 +12,45 @@
 #define BUZZER_PIN 33     // GPIO for buzzer control
 #define I2C_SLAVE_ADDR 8  // I2C address of ATmega328 slave
 #define LCD_ADDR 0x27     // I2C address of 16x2 LCD
-#define KEYPAD_ROWS 5
+
+// #define KEYPAD_ROWS 5
+#define KEYPAD_ROWS 4
 #define KEYPAD_COLS 4
 
 String apiKey = "wuiee76";
 
 String mid = "OG2501";  //change this to Meter ID
 
-byte rowPins[KEYPAD_ROWS] = { 27, 26, 25, 19, 18 };  // GPIO pins for keypad rows
-byte colPins[KEYPAD_COLS] = { 4, 16, 17, 5 };        // GPIO pins for keypad columns
+// (keypad1 = 5 x 4)
+//4, 16, 17, 5, 18, 19, 25, 26, 27 ---- soldering
+// byte rowPins[KEYPAD_ROWS] = { 27, 26, 25, 19, 18 };  // GPIO pins for keypad rows
+// byte colPins[KEYPAD_COLS] = { 4, 16, 17, 5 };        // GPIO pins for keypad columns
+
+
+// (keypad2 = 4 x 4)
+//19, 18, 5, 17, 16, 4, 27, 26, 25 ---- soldering
+byte rowPins[KEYPAD_ROWS] = {19, 18, 5, 17};  // GPIO pins for keypad rows
+byte colPins[KEYPAD_COLS] = {16, 4, 27, 26};  // GPIO pins for keypad columns
+
+// (keypad3 = 5 x 4)
+// 19, 18, 5, 17, 16, 4, 27, 26, 25 ---- soldering
+// byte rowPins[KEYPAD_ROWS] = {25, 26, 27, 4, 16};  // GPIO pins for keypad rows
+// byte colPins[KEYPAD_COLS] = {19, 18, 5, 17};  // GPIO pins for keypad columns
+
+
+// char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
+//   { '!', '@', '#', '*' },
+//   { '1', '2', '3', 'U' },
+//   { '4', '5', '6', 'D' },
+//   { '7', '8', '9', 'B' },
+//   { 'L', '0', 'R', 'E' }
+// };
 
 char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
-  { '!', '@', '#', '*' },
-  { '1', '2', '3', 'U' },
-  { '4', '5', '6', 'D' },
-  { '7', '8', '9', 'B' },
-  { 'L', '0', 'R', 'E' }
+  {'1','2','3','*'},
+  {'4','5','6','#'},
+  {'7','8','9','!'},
+  {'B','0','B','E'}
 };
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);

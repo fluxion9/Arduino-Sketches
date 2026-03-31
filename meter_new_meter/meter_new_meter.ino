@@ -6,10 +6,16 @@
 #define iSense A3  // ACS712 current sense pin
 #define bSense A2  // Battery voltage sense pin
 
+// #define vSense A0  // AC voltage sense pin
+// #define iSense A2  // ACS712 current sense pin
+// #define bSense A1  // Battery voltage sense pin
+
 const float VREF = 5.0;
 const int ADC_MAX = 1023;
-const float ACS712_SENSITIVITY = 0.185;
-const int SAMPLE_COUNT = 200;
+// const float ACS712_SENSITIVITY = 0.185; //20A version
+const float ACS712_SENSITIVITY = 0.066; //30A version
+
+const int SAMPLE_COUNT = 300;
 
 float voltage = 0.0;
 float current = 0.0;
@@ -48,15 +54,31 @@ void loop() {
 }
 
 float measureVoltageAC() {
-  float sumSq = 0;
-  for (int i = 0; i < SAMPLE_COUNT; i++) {
-    float reading = analogRead(vSense) * (VREF / ADC_MAX);
-    sumSq += reading * reading;
+  const uint16_t sampleCount = 1000;
+  const float adcReference = 5.0;
+  const float adcResolution = 1023.0;
+  const float calibrationFactor = 312.0;
+
+  float sumSquares = 0.0;
+  float offset = 0.0;
+
+  for (int i = 0; i < 200; i++) {
+    offset += analogRead(vSense);
     delayMicroseconds(200);
   }
-  float Vrms = sqrt(sumSq / SAMPLE_COUNT);
-  Vrms *= 101.0;
-  return Vrms;
+  offset /= 200.0;
+
+  for (int i = 0; i < sampleCount; i++) {
+    float sample = analogRead(vSense) - offset;
+    sumSquares += sample * sample;
+    delayMicroseconds(200); // ~5kHz sampling
+  }
+
+  float rmsAdc = sqrt(sumSquares / sampleCount);
+
+  float rmsVoltage = (rmsAdc * adcReference) / adcResolution;
+
+  return rmsVoltage * calibrationFactor;
 }
 
 float measureBatteryVoltage() {
